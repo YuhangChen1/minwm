@@ -25,7 +25,7 @@ https://github.com/user-attachments/assets/74d1f157-66a7-4f88-9f57-d76382ef55c2
 - [🛠️ Installation](#️-installation)
 - [🧱 Model Checkpoints](#-model-checkpoints)
 - [🚀 Quick Start](#-quick-start)
-- [⚙️ Training & Reproduction](#️-training--reproduction)
+- [⚙️ Data & Training & Reproduction](#️-data--training--reproduction)
 - [📚 Citation](#-citation)
 - [Contact](#contact)
 - [🙏 Acknowledgements](#-acknowledgements)
@@ -144,7 +144,7 @@ All weights live under `./ckpts/` after download.
 
 ## 🚀 Quick Start
 
-> The fastest path: install → download three DMD checkpoints → run three demo commands. Full reproduction (all 4 training stages × 3 model lines) is in [§ Training & Reproduction](#️-training--reproduction).
+> The fastest path: install → download three DMD checkpoints → run three demo commands. Full reproduction (all 4 training stages × 3 model lines) is in [§ Data & Training & Reproduction](#️-training--reproduction).
 
 ### 1. Download the demo checkpoints
 
@@ -202,7 +202,7 @@ TRAJECTORY_PATH="Wan21/prompts/trajectories.txt" \
 
 > **Camera control.** For HY Action2V, trajectories are read per-sample from `assets/example.json` under the `"trajectory"` field. Format: `w/s/a/d` keys with `*N` repeats; comma-separated segments — e.g. `"a*4,w*8,s*7"`.
 
-## ⚙️ Training & Reproduction
+## ⚙️ Data & Training & Reproduction
 
 Three model lines × two phases × four stages, each documented as **(1) Model download → (2) Data preparation → (3) Training script → (4) Validation**. Full reproduction guides are split by backbone:
 
