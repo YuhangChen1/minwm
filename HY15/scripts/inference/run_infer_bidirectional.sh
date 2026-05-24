@@ -25,4 +25,4 @@ torchrun \
     --num_inference_steps 50 \
     --shift 5.0 \
     --guidance_scale 6.0 \
-    --fps 8
+    --fps 16
