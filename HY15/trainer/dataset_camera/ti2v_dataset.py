@@ -223,6 +223,11 @@ class TI2VDataset(Dataset):
                 viewmats = torch.from_numpy(viewmats).float()  # (T_lat, 4, 4)
                 Ks = torch.from_numpy(Ks).float()              # (T_lat, 3, 3)
 
+                # Discrete action labels
+                from trainer.dataset_camera.action_utils import discretize_poses_to_actions
+                action = torch.from_numpy(
+                    discretize_poses_to_actions(viewmats.numpy()))  # (T_lat,)
+
                 # Create i2v mask
                 i2v_mask = torch.ones_like(latent)
 
@@ -239,6 +244,7 @@ class TI2VDataset(Dataset):
                     "select_window_out_flag": 0,  # no memory training
                     "viewmats": viewmats,
                     "Ks": Ks,
+                    "action": action,
                 }
                 break
             except Exception as e:
@@ -265,6 +271,7 @@ def latent_collate_function(batch):
     byt5_text_mask = torch.stack([b["byt5_text_mask"] for b in batch], dim=0)
     viewmats = torch.stack([b["viewmats"] for b in batch], dim=0)  # (B, T, 4, 4)
     Ks = torch.stack([b["Ks"] for b in batch], dim=0)              # (B, T, 3, 3)
+    action = torch.stack([b["action"] for b in batch], dim=0)      # (B, T)
 
     video_path = [b["video_path"] for b in batch]
     select_window_out_flag = [b["select_window_out_flag"] for b in batch]
@@ -282,6 +289,7 @@ def latent_collate_function(batch):
         "select_window_out_flag": select_window_out_flag,
         "viewmats": viewmats,
         "Ks": Ks,
+        "action": action,
     }
 
 
@@ -295,7 +303,8 @@ def build_ti2v_dataloader(
         drop_first_row,
         seed,
         cfg_rate,
-        i2v_rate, ) -> tuple[TI2VDataset, StatefulDataLoader]:
+        i2v_rate,
+) -> tuple[TI2VDataset, StatefulDataLoader]:
     manager = mp.Manager()
     shared_state = manager.dict()
     shared_state["max_frames"] = window_frames

@@ -228,6 +228,11 @@ class CausalODEDataset(Dataset):
                     viewmats = torch.from_numpy(viewmats_np).float()    # (T_lat, 4, 4)
                     Ks = torch.from_numpy(Ks_np).float()                # (T_lat, 3, 3)
 
+                # Discrete action labels (derived from viewmats)
+                from trainer.dataset_camera.action_utils import discretize_poses_to_actions
+                action = torch.from_numpy(
+                    discretize_poses_to_actions(viewmats))  # (T_lat,)
+
                 batch = {
                     "i2v_mask": i2v_mask,
                     "latent": latent,
@@ -242,6 +247,7 @@ class CausalODEDataset(Dataset):
                     "ode_trajectory": ode_trajectory,
                     "viewmats": viewmats,
                     "Ks": Ks,
+                    "action": action,
                 }
                 break
             except Exception as e:
@@ -269,9 +275,10 @@ def latent_collate_function(batch):
     ode_trajectory = torch.stack([b["ode_trajectory"] for b in batch], dim=0)
     viewmats = torch.stack([b["viewmats"] for b in batch], dim=0)
     Ks = torch.stack([b["Ks"] for b in batch], dim=0)
+    action = torch.stack([b["action"] for b in batch], dim=0)
     video_path = [b["video_path"] for b in batch]
     select_window_out_flag = [b["select_window_out_flag"] for b in batch]
-    
+
     return {
         "i2v_mask": i2v_mask,
         "latent": latent,
@@ -286,6 +293,7 @@ def latent_collate_function(batch):
         "ode_trajectory": ode_trajectory,
         "viewmats": viewmats,
         "Ks": Ks,
+        "action": action,
     }
 
 
@@ -300,7 +308,8 @@ def build_causal_ode_dataloader(
         seed,
         cfg_rate,
         i2v_rate,
-        task_type, ) -> tuple[CausalODEDataset, StatefulDataLoader]:
+        task_type,
+) -> tuple[CausalODEDataset, StatefulDataLoader]:
     manager = mp.Manager()
     shared_state = manager.dict()
     shared_state["max_frames"] = window_frames

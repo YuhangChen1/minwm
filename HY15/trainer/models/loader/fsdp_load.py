@@ -114,8 +114,10 @@ def maybe_load_fsdp_model(
         model = model_cls.from_config(config, local_attn_size=-1, sink_size=0)
         if hasattr(model_cls, 'add_prope_parameters') and 'ProPE' in cls_name:
             model.add_prope_parameters()
-        # Step 2: add prope layers so parameter names exist before loading
-        # Step 3: load all weights — prope keys now match
+        if hasattr(model, 'add_discrete_action_parameters'):
+            model.add_discrete_action_parameters()
+        # Step 2: add prope/action layers so parameter names exist before loading
+        # Step 3: load all weights — keys now match
         from safetensors.torch import load_file
         ckpt_path = os.path.join(load_from_dir, "diffusion_pytorch_model.safetensors")
         state_dict = load_file(ckpt_path)

@@ -379,6 +379,77 @@ OUTPUT_DIR=./outputs/eval_dmd_camera \
 
 </details>
 
+### 1.3 Using WorldPlay Checkpoints as Init (Discrete Action Mode)
+
+You can download the official [tencent/HY-WorldPlay](https://huggingface.co/tencent/HY-WorldPlay) checkpoints and use them as initialization, skipping earlier stages. 
+<details>
+<summary><b>Expand</b> (download / training commands / parameter details)</summary>
+
+**(1) Download**
+
+```bash
+# Bidirectional model (Phase 1 output → use as Stage 1 init)
+hf download tencent/HY-WorldPlay --local-dir ./ckpts/HY-WorldPlay \
+    --include "bidirectional_model/*"
+
+# AR model (Stage 1 output → use as Stage 2 init)
+hf download tencent/HY-WorldPlay --local-dir ./ckpts/HY-WorldPlay \
+    --include "ar_model/*"
+```
+
+**(2) Training with discrete action**
+
+Set `USE_DISCRETE_ACTION=True` and point `AR_ACTION_LOAD_FROM_DIR` to the downloaded checkpoint:
+
+```bash
+# Phase 1: Bidirectional camera + discrete action (for testing/debugging only)
+USE_DISCRETE_ACTION=True \
+AR_ACTION_LOAD_FROM_DIR=./ckpts/HY-WorldPlay/bidirectional_model/diffusion_pytorch_model.safetensors \
+    bash HY15/scripts/training/hyvideo15/run_bi_camera_multinode.sh
+
+# Phase 2 Stage 1: AR teacher forcing + discrete action
+USE_DISCRETE_ACTION=True \
+AR_ACTION_LOAD_FROM_DIR=./ckpts/HY-WorldPlay/bidirectional_model/diffusion_pytorch_model.safetensors \
+    bash HY15/scripts/training/hy15_camera/run_ar_hunyuan_mem_multinode.sh
+
+# Phase 2 Stage 2(a): Causal ODE + discrete action
+USE_DISCRETE_ACTION=True \
+AR_ACTION_LOAD_FROM_DIR=./ckpts/HY-WorldPlay/ar_model/diffusion_pytorch_model.safetensors \
+    bash HY15/scripts/training/hy15_camera/run_ar_causal_ode.sh
+
+# Phase 2 Stage 2(b): Causal CD + discrete action
+USE_DISCRETE_ACTION=True \
+AR_ACTION_LOAD_FROM_DIR=./ckpts/HY-WorldPlay/ar_model/diffusion_pytorch_model.safetensors \
+    bash HY15/scripts/training/hy15_camera/run_ar_causal_cd.sh
+
+# Phase 2 Stage 3: DMD + discrete action
+USE_DISCRETE_ACTION=True \
+AR_ACTION_LOAD_FROM_DIR=./ckpts/HY15/Action2V/causal_ode/diffusion_pytorch_model.safetensors \
+TEACHER_MODEL_PATH=./ckpts/HY-WorldPlay/bidirectional_model/diffusion_pytorch_model.safetensors \
+    bash HY15/scripts/training/hy15_camera/run_ar_hunyuan_dmd.sh
+```
+
+Without `USE_DISCRETE_ACTION` (default `False`), behavior is identical to standard camera training (PRoPE only).
+
+> Note: Phase 1 (bidirectional) is mainly for testing/debugging the discrete action pipeline. In production, start from Phase 2 Stage 1 with the official WorldPlay bidirectional checkpoint. The HY1.5 base model (`./ckpts/HunyuanVideo-1.5`) is still required for VAE / text encoder / scheduler — download it per §1.1.
+
+**(3) `USE_DISCRETE_ACTION` parameter details**
+
+When set to `True`, the training script passes `--use_discrete_action True` to the trainer. This triggers:
+- FSDP loading stage: calls `add_discrete_action_parameters()` to create the `action_in` module (a `TimestepEmbedder` with 81 classes) on the transformer
+- Training entry: verifies `action_in` exists on the loaded model; if missing, warns and adds as zero-init fallback
+- Forward pass: discrete action labels (derived from viewmats) are embedded and added to the timestep vector
+
+When `False` (default), if `action_in` is found on the model (e.g. loaded from a WorldPlay ckpt), it is removed with a warning to avoid unused parameters.
+
+| | Standard camera | WorldPlay (`USE_DISCRETE_ACTION=True`) |
+|---|---|---|
+| Camera conditioning | PRoPE only | PRoPE + discrete action embedding |
+| Extra parameters | `img_attn_prope_proj` per block | Same + `action_in` (TimestepEmbedder) |
+| Data requirement | viewmats in dataset | Same (action labels derived automatically) |
+
+</details>
+
 ---
 
 ## 2. HY TI2V

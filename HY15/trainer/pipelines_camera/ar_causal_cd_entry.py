@@ -34,6 +34,7 @@ from trainer.distributed.parallel_state import get_sp_parallel_rank, get_sp_worl
 import trainer.envs as envs
 from trainer.dataset_camera import build_camera_plucker_dataloader
 from trainer.dataset_camera.dataloader.schema import pyarrow_schema_t2v, pyarrow_schema_i2v
+from trainer.dataset_camera.action_utils import discretize_poses_to_actions
 from trainer.distributed import (cleanup_dist_env_and_memory, get_local_torch_device,
                                   get_sp_group, get_world_group)
 from trainer.trainer_args import TrainerArgs, TrainingArgs, WorkloadType
@@ -124,6 +125,24 @@ class ConsistencyDistillationPipeline(ComposedPipelineBase):
         self.cfg_scale = getattr(training_args, 'cfg_scale', 5.0)
         assert training_args.training_cfg_rate == 0.0, \
             "Distillation student must see real prompts; set --training_cfg_rate 0.0"
+
+        # ProPE: verify camera projection parameters exist (should be created during FSDP loading)
+        assert hasattr(self.transformer.double_blocks[0], 'img_attn_prope_proj'), \
+            "ProPE (img_attn_prope_proj) missing — should be created during FSDP loading."
+        logger.info("ProPE projection layers verified.")
+        if getattr(training_args, 'use_discrete_action', False):
+            if not hasattr(self.transformer, 'action_in'):
+                logger.warning(
+                    "use_discrete_action=True but action_in missing. "
+                    "FSDP should have created it. Adding as zero-init fallback.")
+                self.transformer.add_discrete_action_parameters()
+            else:
+                logger.info("WorldPlay: action_in loaded from checkpoint.")
+        else:
+            if hasattr(self.transformer, 'action_in'):
+                logger.warning(
+                    "use_discrete_action=False but action_in found (from WorldPlay ckpt). Removing.")
+                del self.transformer.action_in
 
         assert self.seed is not None
         set_random_seed(self.seed)
@@ -309,6 +328,9 @@ class ConsistencyDistillationPipeline(ComposedPipelineBase):
         if viewmats is not None:
             training_batch.viewmats = viewmats.to(dev, dtype=bf)
             training_batch.Ks = Ks.to(dev, dtype=bf)
+        action = batch.get('action')
+        if action is not None:
+            training_batch.action = action.to(dev)
         return training_batch
 
     # ──────────────────────────────────────────────
@@ -360,6 +382,8 @@ class ConsistencyDistillationPipeline(ComposedPipelineBase):
             # PRoPE camera control
             "viewmats": training_batch.viewmats,
             "Ks": training_batch.Ks,
+            # Discrete action conditioning (WorldPlay)
+            "action": getattr(training_batch, 'action', None),
         }
 
     def _build_uncond_kwargs(self, noisy, timesteps, training_batch, clean_x=None, aug_timesteps=None):
@@ -395,6 +419,8 @@ class ConsistencyDistillationPipeline(ComposedPipelineBase):
             # PRoPE camera control (camera params don't participate in CFG)
             "viewmats": training_batch.viewmats,
             "Ks": training_batch.Ks,
+            # Discrete action conditioning (WorldPlay)
+            "action": getattr(training_batch, 'action', None),
         }
 
     # ──────────────────────────────────────────────
@@ -674,6 +700,14 @@ class ConsistencyDistillationPipeline(ComposedPipelineBase):
         scheduler = FlowMatchDiscreteScheduler(
             shift=self.training_args.ode_shift, reverse=True, solver="euler")
         scheduler.set_timesteps(validation_num_steps, device=dev)
+
+        # Discrete action for validation (if model has action_in)
+        _action = None
+        if hasattr(self.transformer, 'action_in'):
+            _action = torch.from_numpy(
+                discretize_poses_to_actions(_viewmats[0].cpu().float().numpy())
+            ).unsqueeze(0).to(dev, dtype=bf)  # (1, T)
+
         with self.ema.apply_to_model(self.transformer):
             for t in scheduler.timesteps:
                 timesteps_in = t.unsqueeze(0).expand(x.shape[0] * x.shape[2]).to(dev, dtype=bf)
@@ -692,6 +726,7 @@ class ConsistencyDistillationPipeline(ComposedPipelineBase):
                         return_dict=False, clean_x=clean_x_concat, aug_timesteps=aug_ts_val,
                         viewmats=_viewmats,
                         Ks=_Ks,
+                        action=_action,
                     )[0]
                 x = scheduler.step(pred, t, x).prev_sample
         vae = self.get_module("vae").to(dev)

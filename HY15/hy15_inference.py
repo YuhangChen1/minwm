@@ -138,6 +138,10 @@ def parse_args():
     parser.add_argument("--video_length", type=int, default=77,
                         help="Number of output video frames (must satisfy (n-1)//4+1 divisible by 4)")
 
+    # Discrete action conditioning
+    parser.add_argument("--use_discrete_action", action="store_true",
+                        help="Pass discrete action labels to model (requires action_in module in ckpt)")
+
     # AR-specific
     parser.add_argument("--stabilization_level", type=int, default=1,
                         help="Timestep for clean context frame modulation (ar_rollout only)")
@@ -397,13 +401,15 @@ def load_model_ar_rollout(transformer_dir):
     )
 
 
-def load_model_prope(transformer_dir):
+def load_model_prope(transformer_dir, use_discrete_action=False):
     """Load ProPE camera-conditioned transformer (used for both modes when trajectory is provided)."""
     from trainer.models.hyvideo.transformer.ar_action_hunyuanvideo_1_5_prope_transformer import \
         ARHunyuanVideo_1_5_DiffusionTransformer
     config = ARHunyuanVideo_1_5_DiffusionTransformer.load_config(transformer_dir)
     model = ARHunyuanVideo_1_5_DiffusionTransformer.from_config(config)
     model.add_prope_parameters()
+    if use_discrete_action:
+        model.add_discrete_action_parameters()
     ckpt_path = os.path.join(transformer_dir, "diffusion_pytorch_model.safetensors")
     state_dict = load_file(ckpt_path, device="cpu")
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
@@ -419,7 +425,7 @@ def load_model_prope(transformer_dir):
 # ---------------------------------------------------------------------------
 
 def run_inference_bidirectional(model, data, neg_prompts, device, num_steps, shift,
-                                guidance_scale, viewmats=None, Ks=None):
+                                guidance_scale, viewmats=None, Ks=None, action=None):
     """
     Bidirectional full-sequence denoising.
     When viewmats/Ks are provided, passes them to model (ProPE mode).
@@ -446,6 +452,8 @@ def run_inference_bidirectional(model, data, neg_prompts, device, num_steps, shi
     if viewmats is not None:
         prope_kwargs = {"viewmats": viewmats.to(device, dtype=torch.bfloat16),
                         "Ks": Ks.to(device, dtype=torch.bfloat16)}
+    if action is not None:
+        prope_kwargs["action"] = action.to(device, dtype=torch.int64)
 
     use_cfg = guidance_scale > 1.0
     if use_cfg:
@@ -519,7 +527,7 @@ def _init_kv_cache(num_layers):
 
 def run_inference_rollout(model, data, neg_prompts, device, num_steps, shift,
                           guidance_scale, stabilization_level, chunk_latent_frames=4,
-                          viewmats=None, Ks=None):
+                          viewmats=None, Ks=None, action=None):
     """
     AR rollout chunk-by-chunk denoising with KV cache.
     When viewmats/Ks are provided, passes per-chunk camera tensors to model (ProPE mode).
@@ -594,6 +602,8 @@ def run_inference_rollout(model, data, neg_prompts, device, num_steps, shift,
             vm_chunk = viewmats[:, start_idx:end_idx].to(device, dtype=torch.bfloat16)
             Ks_chunk = Ks[:, start_idx:end_idx].to(device, dtype=torch.bfloat16)
             prope_kwargs = {"viewmats": vm_chunk, "Ks": Ks_chunk}
+        if action is not None:
+            prope_kwargs["action"] = action[start_idx:end_idx].to(device, dtype=torch.int64)
 
         for i, t in enumerate(timesteps):
             if dist.get_rank() == 0:
@@ -753,7 +763,7 @@ def main():
     use_prope = camera_mode
 
     if use_prope:
-        model = load_model_prope(args.transformer_dir)
+        model = load_model_prope(args.transformer_dir, use_discrete_action=args.use_discrete_action)
     elif args.mode == "bidirectional":
         model = load_model_bidirectional(args.transformer_dir)
     else:
@@ -830,20 +840,27 @@ def main():
                 viewmats = torch.cat([viewmats, viewmats[:, -1:].expand(-1, pad_n, -1, -1)], dim=1)
                 Ks = torch.cat([Ks, Ks[:, -1:].expand(-1, pad_n, -1, -1)], dim=1)
 
+        # Build discrete action labels if requested
+        action = None
+        if args.use_discrete_action and trajectory:
+            from trainer.dataset_camera.action_utils import trajectory_str_to_action_labels
+            T_lat = data["latent_shape"][2]
+            action = trajectory_str_to_action_labels(trajectory, T_lat)
+
         # Run inference
         t0 = time.perf_counter()
         if args.mode == "bidirectional":
             x = run_inference_bidirectional(
                 model, data, neg_prompts, device,
                 args.num_inference_steps, args.shift, args.guidance_scale,
-                viewmats, Ks,
+                viewmats, Ks, action,
             )
         else:
             x = run_inference_rollout(
                 model, data, neg_prompts, device,
                 args.num_inference_steps, args.shift, args.guidance_scale,
                 args.stabilization_level, args.chunk_latent_frames,
-                viewmats, Ks,
+                viewmats, Ks, action,
             )
 
         elapsed = time.perf_counter() - t0

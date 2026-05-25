@@ -27,6 +27,7 @@ import trainer.envs as envs
 from trainer.configs.sample import SamplingParam
 from trainer.dataset_camera import build_camera_plucker_dataloader
 from trainer.dataset_camera.dataloader.schema import pyarrow_schema_t2v, pyarrow_schema_i2v
+from trainer.dataset_camera.action_utils import discretize_poses_to_actions
 from trainer.dataset_camera.validation_dataset import ValidationDataset
 from trainer.distributed import (cleanup_dist_env_and_memory,
                                    get_local_torch_device, get_sp_group,
@@ -138,9 +139,23 @@ class ARCameraTrainingPipeline(ComposedPipelineBase):
         if not self.causal:
             self.transformer.set_attn_mode('flash')
             logger.info("Non-causal training: set attn_mode='flash' (bidirectional)")
-        
-        self.transformer.add_prope_parameters()
-        logger.info("ProPE projection layers initialized.")
+
+        assert hasattr(self.transformer.double_blocks[0], 'img_attn_prope_proj'), \
+            "ProPE (img_attn_prope_proj) missing — should be created during FSDP loading."
+        logger.info("ProPE projection layers verified.")
+        if getattr(training_args, 'use_discrete_action', False):
+            if not hasattr(self.transformer, 'action_in'):
+                logger.warning(
+                    "use_discrete_action=True but action_in missing. "
+                    "FSDP should have created it. Adding as zero-init fallback.")
+                self.transformer.add_discrete_action_parameters()
+            else:
+                logger.info("WorldPlay: action_in loaded from checkpoint.")
+        else:
+            if hasattr(self.transformer, 'action_in'):
+                logger.warning(
+                    "use_discrete_action=False but action_in found (from WorldPlay ckpt). Removing.")
+                del self.transformer.action_in
         self.train_time_shift = training_args.train_time_shift
 
         # Set random seeds for deterministic training
@@ -269,6 +284,7 @@ class ARCameraTrainingPipeline(ComposedPipelineBase):
         i2v_mask = batch.get('i2v_mask')
         viewmats = batch.get('viewmats')
         Ks = batch.get('Ks')
+        action = batch.get('action')
 
         if self.global_rank == 0 and training_batch.current_timestep == 1:
             logger.info("First batch shapes: " + ", ".join(
@@ -305,6 +321,9 @@ class ARCameraTrainingPipeline(ComposedPipelineBase):
             training_batch.viewmats = viewmats.to(
                 get_local_torch_device(), dtype=torch.bfloat16)
             training_batch.Ks = Ks.to(
+                get_local_torch_device(), dtype=torch.bfloat16)
+        if action is not None:
+            training_batch.action = action.to(
                 get_local_torch_device(), dtype=torch.bfloat16)
 
         return training_batch
@@ -602,6 +621,9 @@ class ARCameraTrainingPipeline(ComposedPipelineBase):
             # PRoPE camera control
             "viewmats": training_batch.viewmats,
             "Ks": training_batch.Ks,
+
+            # Discrete action conditioning (WorldPlay)
+            "action": getattr(training_batch, 'action', None),
         }
         return training_batch
 
@@ -967,6 +989,13 @@ class ARCameraTrainingPipeline(ComposedPipelineBase):
         _Ks = _np.tile(_K, (_T, 1, 1))
         _Ks = torch.from_numpy(_Ks).unsqueeze(0).to(self.device, dtype=torch.bfloat16)  # (1, T, 3, 3)
 
+        # Discrete action for validation (if model has action_in)
+        _action = None
+        if hasattr(self.transformer, 'action_in'):
+            _action = torch.from_numpy(
+                discretize_poses_to_actions(_viewmats[0].cpu().float().numpy())
+            ).unsqueeze(0).to(self.device, dtype=torch.bfloat16)  # (1, T)
+
         # assert validation_clean_x is None, "clean_x must not be passed during validation: teacher forcing is training-only"
         # assert validation_aug_timesteps is None, "aug_timesteps must not be passed during validation: teacher forcing is training-only"
         for i, t in enumerate(scheduler.timesteps):
@@ -991,6 +1020,7 @@ class ARCameraTrainingPipeline(ComposedPipelineBase):
                     aug_timesteps=validation_aug_timesteps,
                     viewmats=_viewmats,
                     Ks=_Ks,
+                    action=_action,
                 )[0]
             x = scheduler.step(pred, t, x).prev_sample
 

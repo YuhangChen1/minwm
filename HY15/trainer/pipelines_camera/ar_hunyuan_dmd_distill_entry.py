@@ -170,6 +170,8 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
         # Get dtype from trainer_args
         default_dtype = PRECISION_TO_TYPE[self.trainer_args.pipeline_config.dit_precision]
 
+        use_discrete_action = getattr(self.training_args, 'use_discrete_action', False)
+
         # Load using the same FSDP loader as main transformer
         model = maybe_load_fsdp_model(
             load_from_dir=model_path,
@@ -189,6 +191,22 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
             output_dtype=None,
             training_mode=True,  # Teacher models may need to be trainable for fake_score
         )
+
+        # Post-load verification
+        if use_discrete_action:
+            if not hasattr(model, 'action_in'):
+                logger.warning(
+                    "use_discrete_action=True but teacher action_in missing. "
+                    "Adding as zero-init fallback.")
+                model.add_discrete_action_parameters()
+                model.action_in.to(default_dtype)
+            else:
+                logger.info("Teacher model: action_in loaded from checkpoint.")
+        else:
+            if hasattr(model, 'action_in'):
+                logger.warning(
+                    "use_discrete_action=False but teacher has action_in. Removing.")
+                del model.action_in
 
         total_params = sum(p.numel() for p in model.parameters())
         logger.info("Loaded teacher model with %.2fB parameters", total_params / 1e9)
@@ -249,6 +267,24 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
 
         # add the causal option
         self.causal = training_args.causal
+
+        assert hasattr(self.transformer.double_blocks[0], 'img_attn_prope_proj'), \
+            "ProPE (img_attn_prope_proj) missing — should be created during FSDP loading."
+        logger.info("ProPE projection layers verified.")
+
+        if getattr(training_args, 'use_discrete_action', False):
+            if not hasattr(self.transformer, 'action_in'):
+                logger.warning(
+                    "use_discrete_action=True but action_in missing. "
+                    "FSDP should have created it. Adding as zero-init fallback.")
+                self.transformer.add_discrete_action_parameters()
+            else:
+                logger.info("WorldPlay: action_in loaded from checkpoint.")
+        else:
+            if hasattr(self.transformer, 'action_in'):
+                logger.warning(
+                    "use_discrete_action=False but action_in found (from WorldPlay ckpt). Removing.")
+                del self.transformer.action_in
          
         # Set random seeds for deterministic training
         assert self.seed is not None, "seed must be set"
@@ -557,9 +593,12 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
 
         viewmats = batch.get('viewmats')
         Ks = batch.get('Ks')
+        action = batch.get('action')
         if viewmats is not None:
             training_batch.viewmats = viewmats.to(self.device, dtype=torch.bfloat16)
             training_batch.Ks = Ks.to(self.device, dtype=torch.bfloat16)
+        if action is not None:
+            training_batch.action = action.to(self.device, dtype=torch.bfloat16)
 
         # DMD Core: Generate random latents instead of using real video
         batch_size = prompt_embed.shape[0]
@@ -664,6 +703,7 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
             # PRoPE camera control
             "viewmats": getattr(training_batch, 'viewmats', None),
             "Ks": getattr(training_batch, 'Ks', None),
+            "action": getattr(training_batch, 'action', None),
         }
 
         return training_batch
@@ -709,6 +749,7 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
 
         viewmats = getattr(training_batch, 'viewmats', None)  # [B, T, 4, 4]
         Ks = getattr(training_batch, 'Ks', None)              # [B, T, 3, 3]
+        action = getattr(training_batch, 'action', None)      # [B, T]
 
         # 1. Initial noise — must be identical across SP ranks so that
         #    sequence-parallel token splits correspond to the same video.
@@ -788,6 +829,7 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
                         start_rope_start_idx=start_frame,
                         viewmats=viewmats[:, start_frame:end_frame] if viewmats is not None else None,
                         Ks=Ks[:, start_frame:end_frame] if Ks is not None else None,
+                        action=action[:, start_frame:end_frame] if action is not None else None,
                     )
 
                     if is_last_step:
@@ -828,6 +870,7 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
                         start_rope_start_idx=start_frame,
                         viewmats=viewmats[:, start_frame:end_frame] if viewmats is not None else None,
                         Ks=Ks[:, start_frame:end_frame] if Ks is not None else None,
+                        action=action[:, start_frame:end_frame] if action is not None else None,
                     )
 
                     if step_idx == k_i:
@@ -884,6 +927,7 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
                     start_rope_start_idx=start_frame,
                     viewmats=viewmats[:, start_frame:end_frame] if viewmats is not None else None,
                     Ks=Ks[:, start_frame:end_frame] if Ks is not None else None,
+                    action=action[:, start_frame:end_frame] if action is not None else None,
                 )
 
             # Append vision KV
@@ -977,6 +1021,7 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
                 "return_dict": False,
                 "viewmats": getattr(training_batch, 'viewmats', None),
                 "Ks": getattr(training_batch, 'Ks', None),
+                "action": getattr(training_batch, 'action', None),
             }
 
             fake_score_pred_noise = self.fake_score_transformer(**teacher_kwargs)[0]
@@ -1031,6 +1076,7 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
                 "return_dict": False,
                 "viewmats": getattr(training_batch, 'viewmats', None),
                 "Ks": getattr(training_batch, 'Ks', None),
+                "action": getattr(training_batch, 'action', None),
             }
 
             real_score_pred_noise_uncond = self.real_score_transformer(**teacher_kwargs_uncond)[0]
@@ -1121,6 +1167,7 @@ class ARHunyuanDMDDistillationPipeline(TrainingPipeline):
             "return_dict": False,
             "viewmats": getattr(training_batch, 'viewmats', None),
             "Ks": getattr(training_batch, 'Ks', None),
+            "action": getattr(training_batch, 'action', None),
         }
 
         # Fake score prediction

@@ -39,6 +39,7 @@ echo "=========================="
 
 training_args=(
   --json_path "$PREENCODED_DIR"
+  --use_discrete_action ${USE_DISCRETE_ACTION:-False}
   --causal
   --i2v_rate 0.0
   --train_time_shift 3.0

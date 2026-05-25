@@ -31,6 +31,7 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 training_args=(
   --json_path "$PREENCODED_DIR"
+  --use_discrete_action ${USE_DISCRETE_ACTION:-False}
   --i2v_rate 0.0
   --train_time_shift 3.0
   --window_frames 20

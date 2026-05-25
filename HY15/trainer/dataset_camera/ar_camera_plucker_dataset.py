@@ -31,6 +31,7 @@ from scipy.spatial.transform import Rotation, Slerp
 
 from trainer.distributed import get_local_torch_device
 from trainer.distributed import get_sp_world_size, get_world_rank, get_world_size
+from trainer.dataset_camera.action_utils import discretize_poses_to_actions
 from trainer.logger import init_logger
 
 logger = init_logger(__name__)
@@ -189,7 +190,6 @@ class CameraPluckerDataset(Dataset):
         self.device = device
         self.shared_state = shared_state
         self.latent_spatial_scale = latent_spatial_scale
-        self.latent_spatial_scale = latent_spatial_scale
 
         self.sampler = DP_SP_BatchSampler(
             batch_size=batch_size,
@@ -257,6 +257,10 @@ class CameraPluckerDataset(Dataset):
                     idx = self.rng.randint(0, self.all_length - 1)
                     continue
 
+                # ── Discrete action labels ──
+                action = torch.from_numpy(
+                    discretize_poses_to_actions(viewmats))  # (T_lat,)
+
                 viewmats = torch.from_numpy(viewmats)  # (T_lat, 4, 4)
                 Ks = torch.from_numpy(Ks)              # (T_lat, 3, 3)
 
@@ -286,6 +290,7 @@ class CameraPluckerDataset(Dataset):
                     "latent": latent,
                     "viewmats": viewmats,
                     "Ks": Ks,
+                    "action": action,
                     "prompt_embed": prompt_embed,
                     "prompt_mask": prompt_mask,
                     "byt5_text_states": byt5_text_states,
@@ -306,10 +311,11 @@ class CameraPluckerDataset(Dataset):
 # ─── Collate & builder ───────────────────────────────────────────────────────
 
 def plucker_collate_function(batch):
-    return {
+    result = {
         "latent":             torch.stack([b["latent"] for b in batch]),
         "viewmats":           torch.stack([b["viewmats"] for b in batch]),
         "Ks":                 torch.stack([b["Ks"] for b in batch]),
+        "action":             torch.stack([b["action"] for b in batch]),
         "prompt_embed":       torch.stack([b["prompt_embed"] for b in batch]),
         "prompt_mask":        torch.stack([b["prompt_mask"] for b in batch]),
         "byt5_text_states":   torch.stack([b["byt5_text_states"] for b in batch]),
@@ -320,6 +326,7 @@ def plucker_collate_function(batch):
         "video_path":         [b["video_path"] for b in batch],
         "select_window_out_flag": [b["select_window_out_flag"] for b in batch],
     }
+    return result
 
 
 def build_camera_plucker_dataloader(

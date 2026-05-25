@@ -1089,20 +1089,15 @@ class ARHunyuanVideo_1_5_DiffusionTransformer(ModelMixin, ConfigMixin):
                 nn.init.zeros_(block.img_attn_prope_proj.bias)
 
     def add_discrete_action_parameters(self):
-        return self
+        if hasattr(self, 'action_in'):
+            print("Trying to add action_in param that exists. Skipping...")
+            return
         self.action_in = TimestepEmbedder(
             self.hidden_size, get_activation_layer("silu")
         )
         nn.init.zeros_(self.action_in.mlp[2].weight)
         if self.action_in.mlp[2].bias is not None:
             nn.init.zeros_(self.action_in.mlp[2].bias)
-
-        for block in self.double_blocks:
-            block.img_attn_prope_proj = nn.Linear(block.hidden_size, block.hidden_size, bias=block.qkv_bias, **block.factory_kwargs)
-            nn.init.zeros_(block.img_attn_prope_proj.weight)
-
-            if block.img_attn_prope_proj.bias is not None:
-                nn.init.zeros_(block.img_attn_prope_proj.bias)
 
     def get_text_and_mask(
         self,
@@ -1257,6 +1252,7 @@ class ARHunyuanVideo_1_5_DiffusionTransformer(ModelMixin, ConfigMixin):
         cache_vision: bool = False,
         rope_temporal_size=4,
         start_rope_start_idx=0,
+        action: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
         if cache_vision:
             _kv_cache_new = []
@@ -1297,6 +1293,8 @@ class ARHunyuanVideo_1_5_DiffusionTransformer(ModelMixin, ConfigMixin):
 
         # Prepare modulation vectors
         vec = self.time_in(t)
+        if action is not None and hasattr(self, 'action_in'):
+            vec = vec + self.action_in(action.reshape(-1))
 
         # broadcast to match the sequence length of video latents
         vec = repeat(vec, "(B T) C->B (T H W) C", B=img.shape[0], H=th, W=tw)
@@ -1389,6 +1387,7 @@ class ARHunyuanVideo_1_5_DiffusionTransformer(ModelMixin, ConfigMixin):
         aug_timesteps: Optional[torch.Tensor] = None,
         viewmats: Optional[torch.Tensor] = None,
         Ks: Optional[torch.Tensor] = None,
+        action: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
         is_tf = clean_x is not None
 
@@ -1411,6 +1410,8 @@ class ARHunyuanVideo_1_5_DiffusionTransformer(ModelMixin, ConfigMixin):
 
         img = self.img_in(img)
         vec = self.time_in(t)
+        if action is not None and hasattr(self, 'action_in'):
+            vec = vec + self.action_in(action.reshape(-1))
         vec = repeat(vec, "(B T) C->B (T H W) C", B=img.shape[0], H=th, W=tw)
 
         if viewmats is not None:

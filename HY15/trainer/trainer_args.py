@@ -659,6 +659,7 @@ class TrainingArgs(TrainerArgs):
     # camera dataset
     json_path: str = ""
     causal: bool = False
+    use_discrete_action: bool = False
     window_frames: int = 9
     wandb_key: str = "<your_wandb_key>"
     wandb_entity: str = "zhyzhy"
@@ -1053,6 +1054,9 @@ class TrainingArgs(TrainerArgs):
         parser.add_argument("--causal",
                             action=StoreBoolean,
                             help="training ar model")
+        parser.add_argument("--use-discrete-action",
+                            action=StoreBoolean,
+                            help="enable WorldPlay discrete action conditioning (81 classes)")
         parser.add_argument("--window-frames",
                             type=int,
                             default=9,

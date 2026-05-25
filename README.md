@@ -173,9 +173,13 @@ mkdir -p Wan21/wan_models
 ln -s "$(realpath ./ckpts/Wan2.1-T2V-1.3B)" Wan21/wan_models/Wan2.1-T2V-1.3B
 
 # Three 4-step DMD checkpoints
-## HY Action2V (DMD, 4-step)
+## HY Action2V (DMD, 4-step, worldplay teacher) 
 hf download MIN-Lab/minWM --local-dir ./ckpts \
     --include "HY15/Action2V/dmd/*"
+
+# HY Action2V (DMD, 4-step, our bidirectional teacher) 
+# hf download MIN-Lab/minWM --local-dir ./ckpts \
+#     --include "HY15/Action2V/dmd_ourbi/*"
 
 ## HY TI2V (DMD, 4-step)
 hf download MIN-Lab/minWM --local-dir ./ckpts \

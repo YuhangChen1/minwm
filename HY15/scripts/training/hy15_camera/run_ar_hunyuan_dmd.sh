@@ -7,11 +7,8 @@ set -e
 PROJECT_ROOT="$(cd "$(dirname "$0")"; while [ "$PWD" != "/" ] && [ ! -f "requirements.txt" ]; do cd ..; done; pwd)"
 cd "$PROJECT_ROOT"
 
-export TORCH_NCCL_TRACE_BUFFER_SIZE=1048576
-export TORCH_NCCL_DUMP_ON_TIMEOUT=1
-export TORCH_NCCL_DEBUG_INFO_TEMP_FILE=/tmp/nccl_trace_rank_  
 
-export NCCL_DEBUG=INFO
+export NCCL_DEBUG=WARN
 export WANDB_BASE_URL="https://api.wandb.ai"
 # export WANDB_MODE=online
 export WANDB_MODE=offline
@@ -68,6 +65,7 @@ echo "========================="
 # ==================== Training Arguments ====================
 training_args=(
   --json_path "$JSON_PATH"
+  --use_discrete_action ${USE_DISCRETE_ACTION:-False}
   --data_path "$DUMMY_DATA_DIR"
   --num_latent_t 20
   --output_dir "$OUTPUT_DIR"

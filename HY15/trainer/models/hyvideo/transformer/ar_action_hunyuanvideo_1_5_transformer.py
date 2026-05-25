@@ -941,25 +941,6 @@ class ARHunyuanVideo_1_5_DiffusionTransformer(ModelMixin, ConfigMixin):
 
         return reorder_txt, reorder_mask
 
-    def add_action_parameters(self):
-        pass
-
-    def add_discrete_action_parameters(self):
-        return self
-        self.action_in = TimestepEmbedder(
-            self.hidden_size, get_activation_layer("silu")
-        )
-        nn.init.zeros_(self.action_in.mlp[2].weight)
-        if self.action_in.mlp[2].bias is not None:
-            nn.init.zeros_(self.action_in.mlp[2].bias)
-
-        for block in self.double_blocks:
-            block.img_attn_prope_proj = nn.Linear(block.hidden_size, block.hidden_size, bias=block.qkv_bias, **block.factory_kwargs)
-            nn.init.zeros_(block.img_attn_prope_proj.weight)
-
-            if block.img_attn_prope_proj.bias is not None:
-                nn.init.zeros_(block.img_attn_prope_proj.bias)
-
     def get_text_and_mask(
         self,
         encoder_attention_mask,

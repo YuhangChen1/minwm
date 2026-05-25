@@ -27,6 +27,7 @@ import trainer.envs as envs
 from trainer.configs.sample import SamplingParam
 from trainer.dataset_camera import build_causal_ode_dataloader
 from trainer.dataset_camera.dataloader.schema import pyarrow_schema_t2v, pyarrow_schema_i2v
+from trainer.dataset_camera.action_utils import discretize_poses_to_actions
 from trainer.dataset_camera.validation_dataset import ValidationDataset
 from trainer.distributed import (cleanup_dist_env_and_memory,
                                    get_local_torch_device, get_sp_group,
@@ -137,6 +138,24 @@ class CausalODETrainingPipeline(ComposedPipelineBase):
         if not self.causal:
             self.transformer.set_attn_mode('flash')
             logger.info("Non-causal training: set attn_mode='flash' (bidirectional)")
+
+        assert hasattr(self.transformer.double_blocks[0], 'img_attn_prope_proj'), \
+            "ProPE (img_attn_prope_proj) missing — should be created during FSDP loading."
+        logger.info("ProPE projection layers verified.")
+
+        if getattr(training_args, 'use_discrete_action', False):
+            if not hasattr(self.transformer, 'action_in'):
+                logger.warning(
+                    "use_discrete_action=True but action_in missing. "
+                    "FSDP should have created it. Adding as zero-init fallback.")
+                self.transformer.add_discrete_action_parameters()
+            else:
+                logger.info("WorldPlay: action_in loaded from checkpoint.")
+        else:
+            if hasattr(self.transformer, 'action_in'):
+                logger.warning(
+                    "use_discrete_action=False but action_in found (from WorldPlay ckpt). Removing.")
+                del self.transformer.action_in
 
         self.train_time_shift = training_args.train_time_shift
         
@@ -263,6 +282,7 @@ class CausalODETrainingPipeline(ComposedPipelineBase):
         ode_trajectory = batch.get('ode_trajectory')  # shape [B, N, C, T, H, W]
         viewmats = batch.get('viewmats')
         Ks = batch.get('Ks')
+        action = batch.get('action')
 
         if self.global_rank == 0 and training_batch.current_timestep == 1:
             logger.info("First batch shapes: " + ", ".join(
@@ -294,6 +314,9 @@ class CausalODETrainingPipeline(ComposedPipelineBase):
                 get_local_torch_device(), dtype=torch.bfloat16)
             training_batch.Ks = Ks.to(
                 get_local_torch_device(), dtype=torch.bfloat16)
+        if action is not None:
+            training_batch.action = action.to(
+                get_local_torch_device(), dtype=torch.long)
         return training_batch
 
     def _normalize_dit_input(self,
@@ -521,6 +544,8 @@ class CausalODETrainingPipeline(ComposedPipelineBase):
             # PRoPE camera control
             "viewmats": getattr(training_batch, 'viewmats', None),
             "Ks": getattr(training_batch, 'Ks', None),
+            # Discrete action conditioning (WorldPlay)
+            "action": getattr(training_batch, 'action', None),
         }
         return training_batch
     
@@ -890,6 +915,13 @@ class CausalODETrainingPipeline(ComposedPipelineBase):
         )
         scheduler.set_timesteps(validation_num_steps, device=self.device)
 
+        # Discrete action for validation (if model has action_in)
+        _action = None
+        if hasattr(self.transformer, 'action_in'):
+            _action = torch.from_numpy(
+                discretize_poses_to_actions(_viewmats[0].cpu().float().numpy())
+            ).unsqueeze(0).to(self.device, dtype=torch.bfloat16)  # (1, T)
+
         for i, t in enumerate(scheduler.timesteps):
             logger.info("Validation denoising step %d/%d", i + 1, validation_num_steps)
             timesteps_in = t.unsqueeze(0).expand(x.shape[0] * x.shape[2]).to(self.device, dtype=torch.bfloat16)
@@ -912,6 +944,7 @@ class CausalODETrainingPipeline(ComposedPipelineBase):
                     aug_timesteps=validation_aug_timesteps,
                     viewmats=_viewmats,
                     Ks=_Ks,
+                    action=_action,
                 )[0]
             x = scheduler.step(pred, t, x).prev_sample
 
