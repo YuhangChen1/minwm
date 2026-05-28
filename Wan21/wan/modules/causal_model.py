@@ -322,11 +322,6 @@ class CausalWanSelfAttention(nn.Module):
                             x_prope[:, :half_valid], pad_t,
                             x_prope[:, half_valid:], pad_t
                         ], dim=1)
-                    # if prope_enabled:
-                    #     x_prope = torch.cat([
-                    #         x_prope[:, :half_valid], pad_t,
-                    #         x_prope[:, half_valid:], pad_t
-                    #     ], dim=1)
 
             else:
                 # DF path removed — only Teacher Forcing is supported.

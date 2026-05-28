@@ -166,7 +166,7 @@ def setup_dist(mode):
                                 world_size=world_size, rank=rank)
 
     if mode == "bidirectional":
-        import trainer.distributed.parallel_state as ps
+        import sp.parallel_state as ps
 
         _orig_init_mp = ps.init_model_parallel_group
         def _patched_init_mp(group_ranks, local_rank, backend, **kwargs):
