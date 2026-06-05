@@ -110,7 +110,43 @@ def load_text_encoder(
     text_encoder = AutoModel.from_pretrained(text_encoder_path, low_cpu_mem_usage=True)
 
     if hasattr(text_encoder, "language_model"):
-        text_encoder = text_encoder.language_model
+        lm = text_encoder.language_model
+        # Newer transformers (~5.10.1) loads Qwen2_5_VLModel whose language submodule
+        # expects keys without the `model.` prefix, but HunyuanVideo checkpoints use
+        # `model.*` keys. When from_pretrained fails to map them, language_model params
+        # get random init instead of pretrained values.
+        # Detect by comparing a probe weight from checkpoint against the model's value.
+        import glob as glob_mod
+        from safetensors import safe_open
+        from safetensors.torch import load_file
+        shard_files = sorted(glob_mod.glob(os.path.join(text_encoder_path, "model-*.safetensors")))
+        needs_remap = False
+        probe_ckpt_key = "model.layers.0.self_attn.q_proj.weight"
+        probe_model_key = "layers.0.self_attn.q_proj.weight"
+        for sf in shard_files:
+            with safe_open(sf, framework="pt") as f:
+                if probe_ckpt_key in f.keys():
+                    ckpt_tensor = f.get_tensor(probe_ckpt_key)
+                    model_tensor = lm.state_dict()[probe_model_key]
+                    needs_remap = not torch.equal(
+                        ckpt_tensor.to(model_tensor.dtype), model_tensor
+                    )
+                    break
+        if needs_remap and shard_files:
+            state_dict = {}
+            for sf in shard_files:
+                state_dict.update(load_file(sf, device="cpu"))
+            remapped = {k[len("model."):]: v for k, v in state_dict.items() if k.startswith("model.")}
+            missing, unexpected = lm.load_state_dict(remapped, strict=False)
+            print(
+                f"[text_encoder] from_pretrained did not correctly load language_model weights "
+                f"(key prefix mismatch). Reloaded with remapping model.* -> * "
+                f"(matched={len(remapped) - len(unexpected)}, missing={len(missing)}, "
+                f"unexpected={len(unexpected)})"
+            )
+        else:
+            print("[text_encoder] language_model weights already loaded correctly by from_pretrained.")
+        text_encoder = lm
     text_encoder.final_layer_norm = text_encoder.norm
 
     # from_pretrained will ensure that the model is in eval mode.
