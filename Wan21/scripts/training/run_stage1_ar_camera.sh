@@ -26,4 +26,4 @@ torchrun \
   Wan21/wan_train.py \
   --config_path Wan21/configs/ar_camera_tf.yaml \
   --logdir logs/ar_camera_tf \
-  --sp_size 4
+  --sp_size 1
