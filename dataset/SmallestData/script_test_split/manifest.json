@@ -1,0 +1,31 @@
+{
+  "source_video": "minWM/dataset/SmallestData/000000_right8a11/gen.mp4",
+  "fps": "24/1",
+  "source_num_frames": 77,
+  "step_frames": 4,
+  "initial_frame": {
+    "frame_index": 0,
+    "file": "first_frame.png"
+  },
+  "actions": [
+    {"action_index": 0, "action": "action_00", "source_frame_start": 1, "source_frame_end": 4, "num_frames": 4, "file": "actions/action_00_frames_1_4.mp4"},
+    {"action_index": 1, "action": "action_01", "source_frame_start": 5, "source_frame_end": 8, "num_frames": 4, "file": "actions/action_01_frames_5_8.mp4"},
+    {"action_index": 2, "action": "action_02", "source_frame_start": 9, "source_frame_end": 12, "num_frames": 4, "file": "actions/action_02_frames_9_12.mp4"},
+    {"action_index": 3, "action": "action_03", "source_frame_start": 13, "source_frame_end": 16, "num_frames": 4, "file": "actions/action_03_frames_13_16.mp4"},
+    {"action_index": 4, "action": "action_04", "source_frame_start": 17, "source_frame_end": 20, "num_frames": 4, "file": "actions/action_04_frames_17_20.mp4"},
+    {"action_index": 5, "action": "action_05", "source_frame_start": 21, "source_frame_end": 24, "num_frames": 4, "file": "actions/action_05_frames_21_24.mp4"},
+    {"action_index": 6, "action": "action_06", "source_frame_start": 25, "source_frame_end": 28, "num_frames": 4, "file": "actions/action_06_frames_25_28.mp4"},
+    {"action_index": 7, "action": "action_07", "source_frame_start": 29, "source_frame_end": 32, "num_frames": 4, "file": "actions/action_07_frames_29_32.mp4"},
+    {"action_index": 8, "action": "action_08", "source_frame_start": 33, "source_frame_end": 36, "num_frames": 4, "file": "actions/action_08_frames_33_36.mp4"},
+    {"action_index": 9, "action": "action_09", "source_frame_start": 37, "source_frame_end": 40, "num_frames": 4, "file": "actions/action_09_frames_37_40.mp4"},
+    {"action_index": 10, "action": "action_10", "source_frame_start": 41, "source_frame_end": 44, "num_frames": 4, "file": "actions/action_10_frames_41_44.mp4"},
+    {"action_index": 11, "action": "action_11", "source_frame_start": 45, "source_frame_end": 48, "num_frames": 4, "file": "actions/action_11_frames_45_48.mp4"},
+    {"action_index": 12, "action": "action_12", "source_frame_start": 49, "source_frame_end": 52, "num_frames": 4, "file": "actions/action_12_frames_49_52.mp4"},
+    {"action_index": 13, "action": "action_13", "source_frame_start": 53, "source_frame_end": 56, "num_frames": 4, "file": "actions/action_13_frames_53_56.mp4"},
+    {"action_index": 14, "action": "action_14", "source_frame_start": 57, "source_frame_end": 60, "num_frames": 4, "file": "actions/action_14_frames_57_60.mp4"},
+    {"action_index": 15, "action": "action_15", "source_frame_start": 61, "source_frame_end": 64, "num_frames": 4, "file": "actions/action_15_frames_61_64.mp4"},
+    {"action_index": 16, "action": "action_16", "source_frame_start": 65, "source_frame_end": 68, "num_frames": 4, "file": "actions/action_16_frames_65_68.mp4"},
+    {"action_index": 17, "action": "action_17", "source_frame_start": 69, "source_frame_end": 72, "num_frames": 4, "file": "actions/action_17_frames_69_72.mp4"},
+    {"action_index": 18, "action": "action_18", "source_frame_start": 73, "source_frame_end": 76, "num_frames": 4, "file": "actions/action_18_frames_73_76.mp4"}
+  ]
+}

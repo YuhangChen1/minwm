@@ -1,0 +1,82 @@
+[
+  {
+    "caption": "A 3D animation featuring Ali, a dedicated university student studying physics, with dreams of becoming a renowned scientist. Ali is depicted as a young adult with a determined look on their face, wearing a lab coat over casual clothes. They are standing in front of a chalkboard filled with complex equations and formulas, surrounded by scientific equipment and books. The background showcases a modern university laboratory with various experiments in progress. Ali is gesturing enthusiastically towards the equations, illustrating a moment of inspiration or discovery. The scene emphasizes Ali’s passion and commitment to their academic pursuits. Medium shot.",
+    "pose_str": "right-8, a-11"
+  },
+  {
+    "caption": "\"A Day in the Life of a Busy Mom\" in a 3D animation style with anime influences. The scene opens with a close-up of a busy mom, depicted with a warm and friendly expression, as she wakes up early in the morning. She quickly gets dressed in a casual yet stylish outfit and prepares breakfast for her family. The kitchen is bustling with activity, and the mom moves efficiently from the stove to the refrigerator, preparing various dishes. Her movements are fluid and natural, reflecting her practiced routine. In the background, the family is shown waking up, yawning, and coming downstairs. The lighting is soft and warm, capturing the cozy atmosphere of a family home during the early morning hours. Wide shot, showing the full kitchen and family interaction.",
+    "pose_str": "left-8, w-4, a-7"
+  },
+  {
+    "caption": "\"A London Adventure: Family Vacation\" - A vibrant and colorful travel vlog showcasing a family of four exploring iconic London landmarks. The family consists of two adults and two children, all dressed in casual, modern attire suitable for sightseeing. They start their day at Buckingham Palace, where they watch the Changing of the Guard ceremony with awe and excitement. Next, they stroll across Trafalgar Square, admiring Nelson's Column and feeding pigeons. In the afternoon, they visit the Tower of London, where the children explore the Crown Jewels exhibit with wide-eyed wonder. The video captures the family's joy and laughter throughout their journey, with scenes filmed from various angles, including medium shots and close-ups, to highlight their interactions and reactions to each location. The overall style is lively and engaging, perfect for a fun-filled family vacation vlog.",
+    "pose_str": "w-4, d-8, a-7"
+  },
+  {
+    "caption": "\"A Love Blossomed in School,\" a heartwarming school romance story illustrated in a soft watercolor style. A young East Asian boy and girl, both with fair skin and expressive faces, stand under a cherry blossom tree during springtime. They are holding hands, smiling warmly at each other. The boy is wearing a navy blue school uniform with a white shirt, and the girl is in a light pink blouse with a pleated skirt. The background showcases a picturesque school campus with blooming cherry blossoms, green lawns, and traditional Japanese-style buildings. The scene captures a tender moment of shared joy and budding love. Medium close-up shot focusing on the couple.",
+    "pose_str": "left-8, d-11"
+  },
+  {
+    "caption": "A boy named ElectronicsBoy, approximately 12 years old, is sitting at a wooden desk cluttered with electronic components and tools. He is engrossed in playing with a Raspberry Pi Pico microcontroller, which is connected to an ST7735 SPI TFT LCD screen. The screen displays a Linux-based graphical interface. ElectronicsBoy has short messy hair and wears round glasses. His face shows concentration as he types commands on a USB keyboard connected to the Raspberry Pi Pico. The background includes various wires, soldering irons, and other tech gadgets. The lighting is soft, casting a warm glow over the setup. Medium close-up shot focusing on the boy's hands and the screen.",
+    "pose_str": "down-4, w-4, d-11"
+  },
+  {
+    "caption": "A captivating, vibrant illustration of a majestic waterfall cascading down rocky cliffs, surrounded by lush, verdant vegetation and vibrant wildlife. The waterfall's mist rises gracefully, creating a shimmering rainbow effect against the backdrop of dense foliage. Various species of birds and butterflies flutter around, adding life and color to the scene. The lush greenery includes towering trees, ferns, and wildflowers, all bathed in soft sunlight filtering through the canopy. The scene is rendered in a realistic watercolor style, emphasizing the dynamic flow of water and the rich, detailed textures of nature. Wide shot, static view.",
+    "pose_str": "right-8, left-11"
+  },
+  {
+    "caption": "A dreamy watercolor scene with an Eastern minimalist style, depicting a serene garden at dawn. The garden features sparse, elegant bamboo and cherry blossom trees, with soft pastel colors blending into the misty horizon. A tranquil koi pond reflects the gentle sky, adding a sense of calmness. The composition is minimalist, focusing on the interplay between light and shadow, with subtle brushstrokes creating a soft, dreamlike atmosphere. Panoramic scale, showcasing the vast yet peaceful landscape.",
+    "pose_str": "a-8, left-11"
+  },
+  {
+    "caption": "A graceful East Asian girl dancing joyfully in a vast golden wheat field. She is dressed in a flowing white sundress with delicate floral patterns and a cheerful smile on her face. Butterflies flutter around her, adding to the serene and enchanting atmosphere. The sun is shining brightly, casting a warm glow over the scene. The background showcases the endless rolling fields of wheat swaying gently in the breeze. The girl's arms and legs move gracefully as she dances, creating a harmonious blend of motion and beauty. Medium shot capturing her dance from a side angle.",
+    "pose_str": "a-8, left-11"
+  },
+  {
+    "caption": "A heroic group of diverse animals standing together in a lush forest clearing. The animals include a lion, an elephant, a gorilla, and a wolf, all displaying confident and determined expressions. They are standing in a tight formation, with the lion at the front, the elephant on the right, the gorilla in the middle, and the wolf on the left. Their postures convey strength and unity. The forest background is dense with tall trees and vibrant green foliage. The scene is bathed in soft sunlight filtering through the canopy. The animals stand still, but the viewer can sense their readiness to act as a team. Wide shot, capturing the entire group in a majestic setting.",
+    "pose_str": "right-8, up-4, d-7"
+  },
+  {
+    "caption": "A magical Christmas scene featuring the Snow Maiden. The Snow Maiden is a beautiful young woman with flowing silver hair and wearing a white fur-lined gown adorned with sparkling icicles. She has rosy cheeks and a warm, gentle smile. She is standing in a snowy forest, surrounded by towering evergreen trees decorated with frost and twinkling fairy lights. In her arms, she holds a large, beautifully wrapped gift box tied with a red bow. The sky is clear and starry, with a bright full moon casting a soft glow over the snow-covered landscape. The scene captures a serene and enchanting winter wonderland atmosphere. Wide shot.",
+    "pose_str": "down-4, s-4, d-11"
+  },
+  {
+    "caption": "A man stands atop a towering mountain peak at 12,000 feet, surrounded by breathtaking panoramic views of rugged terrain and snow-capped peaks. The man is dressed in warm, layered clothing suitable for extreme altitudes, with a determined and awe-struck expression on his face. His posture is upright and steady, hands resting lightly on his sides. The landscape around him is richly detailed, featuring intricate textures of rock formations, patches of snow, and wisps of cloud cover. The environment is rendered in stunning 12K, UHD resolution with complex details and realistic lighting effects, capturing the essence of the high-altitude wilderness. Wide shot, static scene.",
+    "pose_str": "left-8, d-11"
+  },
+  {
+    "caption": "A man with intricate Sumatran-inspired tattoos, including a detailed cat tattoo on his chest, sits calmly in a chair with his hands crossed and eyes closed. His tattoos feature vibrant colors and flowing patterns characteristic of Android Jones' style. The man has a serene expression, and his posture conveys relaxation. The background is a blurred, ethereal space that complements the mystical quality of the tattoos. The lighting highlights the textures and hues of the artwork. Medium close-up shot, static.",
+    "pose_str": "w-4, right-8, a-7"
+  },
+  {
+    "caption": "A player named Fetronic playing 'Among Us.' The character has a vibrant green skin tone and two large, expressive eyes with glowing green irises. Fetronic is wearing a standard crewmember outfit with a white shirt and black pants, featuring the iconic 'Among Us' logo on the chest. They are standing in the game's spaceship environment, which includes various control panels, doors, and corridors. Fetronic is pointing at something suspicious, looking intensely focused and slightly worried. The background shows other crewmates moving around the ship, adding to the interactive gameplay atmosphere. Medium shot capturing the player's detailed facial expressions and body language.",
+    "pose_str": "s-4, left-8, w-7"
+  },
+  {
+    "caption": "A simple, elegant design featuring the title 'Serene Reflections' over a calming, peaceful background. The background showcases a tranquil nature scene, such as a serene forest glade with soft dappled sunlight filtering through the leaves, or a gently flowing river winding through lush green meadows. The scene is bathed in warm, natural light, creating a soothing atmosphere. The title is presented in a clean, modern font, positioned gracefully within the frame, ensuring readability without overpowering the serene visuals. Static shot, showcasing the beauty and tranquility of the environment.",
+    "pose_str": "up-4, right-8, s-7"
+  },
+  {
+    "caption": "A to Z animated alphabet, where each letter comes to life as a talking character. Each character represents its corresponding letter, with unique personalities and outfits. For example, 'A' could be an adventurous astronaut, 'B' a brave ballerina, and so forth. Characters express themselves through exaggerated facial expressions and gestures. Each character appears sequentially, speaking their letter and a brief sentence that showcases their personality. The background is a colorful, playful environment filled with whimsical elements like clouds, stars, and balloons. Shot in a close-up, medium shot, and full body perspective to highlight each character's features and actions.",
+    "pose_str": "right-8, w-4, down-7"
+  },
+  {
+    "caption": "Abe no Seimei, a renowned Onmyoji from ancient Japan, casts a powerful incantation. He wears traditional Japanese robes, including a black kimono with red accents and a conical black hat. His face shows intense concentration as he gestures with both hands, forming intricate hand seals. Smoke and ethereal lights swirl around him, enhancing the mystical atmosphere. The background features a dimly lit Shinto shrine, with flickering candles and shadows dancing on the walls. The scene captures Abe no Seimei in a medium close-up, emphasizing his focused expression and the magical energy surrounding him.",
+    "pose_str": "left-8, a-11"
+  },
+  {
+    "caption": "\"Absolute Love in Full Circle,\" styled as an 8K ultrafine detail film photograph with vintage film grain and a private press aesthetic. This masterpiece captures a tender moment between two people from different generations, perhaps a parent and child, embracing in a nostalgic setting bathed in warm, golden hour sunlight. The scene is rich with subtle details, such as textured clothing and intricate facial expressions, set against a blurred backdrop of classic architecture or a serene natural landscape. The image exudes a sense of timeless beauty and emotional depth, evoking the essence of cinematic storytelling. Wide shot, static composition, capturing the full embrace and surrounding environment in exquisite detail.",
+    "pose_str": "a-8, up-4, s-7"
+  },
+  {
+    "caption": "Aerial view of Sandy Bay on Lake Baikal in winter, captured in ultra-high resolution film. The scene showcases a serene frozen lake surface covered in a layer of snow, with patches of clear ice visible beneath. Snow-capped pine trees surround the bay, their branches heavy with frost. The landscape is bathed in soft, diffused sunlight, casting gentle shadows across the snowy terrain. In the distance, rolling hills covered in a blanket of pristine snow stretch towards the horizon. The sky is a clear, pale blue, with wisps of clouds drifting lazily. Static aerial shot from a moderate height, emphasizing the vast, tranquil beauty of the winter landscape.",
+    "pose_str": "left-8, up-4, w-7"
+  },
+  {
+    "caption": "Ahmed, a young and adventurous explorer with a passion for discovery, stands confidently in front of a vast, uncharted wilderness. He wears a durable backpack and sturdy hiking boots, his clothes slightly worn but clean. His determined gaze is fixed on the horizon as he holds a map and compass in his hands, ready for a new journey. Ahmed's facial expression conveys both excitement and bravery. The background showcases a dense forest with towering trees and a winding path leading deeper into nature. The scene is captured in stunning photorealism, with vibrant colors and crisp 4K resolution. Static medium shot.",
+    "pose_str": "a-8, w-4, a-7"
+  },
+  {
+    "caption": "\"Alice in Wonderland\" adapted in a 1930s two-strip Technicolor film style. Alice, portrayed as a young girl with curly blonde hair and a whimsical smile, wears a white frilly dress with a blue sash and pinafore apron. She stands in a fantastical garden, surrounded by oversized flowers and peculiar creatures, including a grinning Cheshire Cat and a sleepy Caterpillar smoking a hookah pipe. The background features blurred, dreamlike landscapes with soft pastel colors. Alice curiously reaches out towards the Cheshire Cat, who playfully disappears and reappears. Medium shot, capturing Alice’s enchanting interaction with the magical world around her.",
+    "pose_str": "a-8, right-11"
+  }
+]

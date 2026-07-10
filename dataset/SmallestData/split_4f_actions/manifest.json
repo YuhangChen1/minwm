@@ -1,0 +1,31 @@
+{
+  "source_video": "../000000_right8a11/gen.mp4",
+  "fps": 24,
+  "source_num_frames": 77,
+  "step_frames": 4,
+  "initial_frame": {
+    "frame_index": 0,
+    "file": "first_frame.png"
+  },
+  "actions": [
+    {"action_index": 0, "action": "right", "source_frames": [1, 2, 3, 4], "file": "actions/action_00_frames_1_4.mp4"},
+    {"action_index": 1, "action": "right", "source_frames": [5, 6, 7, 8], "file": "actions/action_01_frames_5_8.mp4"},
+    {"action_index": 2, "action": "right", "source_frames": [9, 10, 11, 12], "file": "actions/action_02_frames_9_12.mp4"},
+    {"action_index": 3, "action": "right", "source_frames": [13, 14, 15, 16], "file": "actions/action_03_frames_13_16.mp4"},
+    {"action_index": 4, "action": "right", "source_frames": [17, 18, 19, 20], "file": "actions/action_04_frames_17_20.mp4"},
+    {"action_index": 5, "action": "right", "source_frames": [21, 22, 23, 24], "file": "actions/action_05_frames_21_24.mp4"},
+    {"action_index": 6, "action": "right", "source_frames": [25, 26, 27, 28], "file": "actions/action_06_frames_25_28.mp4"},
+    {"action_index": 7, "action": "right", "source_frames": [29, 30, 31, 32], "file": "actions/action_07_frames_29_32.mp4"},
+    {"action_index": 8, "action": "a", "source_frames": [33, 34, 35, 36], "file": "actions/action_08_frames_33_36.mp4"},
+    {"action_index": 9, "action": "a", "source_frames": [37, 38, 39, 40], "file": "actions/action_09_frames_37_40.mp4"},
+    {"action_index": 10, "action": "a", "source_frames": [41, 42, 43, 44], "file": "actions/action_10_frames_41_44.mp4"},
+    {"action_index": 11, "action": "a", "source_frames": [45, 46, 47, 48], "file": "actions/action_11_frames_45_48.mp4"},
+    {"action_index": 12, "action": "a", "source_frames": [49, 50, 51, 52], "file": "actions/action_12_frames_49_52.mp4"},
+    {"action_index": 13, "action": "a", "source_frames": [53, 54, 55, 56], "file": "actions/action_13_frames_53_56.mp4"},
+    {"action_index": 14, "action": "a", "source_frames": [57, 58, 59, 60], "file": "actions/action_14_frames_57_60.mp4"},
+    {"action_index": 15, "action": "a", "source_frames": [61, 62, 63, 64], "file": "actions/action_15_frames_61_64.mp4"},
+    {"action_index": 16, "action": "a", "source_frames": [65, 66, 67, 68], "file": "actions/action_16_frames_65_68.mp4"},
+    {"action_index": 17, "action": "a", "source_frames": [69, 70, 71, 72], "file": "actions/action_17_frames_69_72.mp4"},
+    {"action_index": 18, "action": "a", "source_frames": [73, 74, 75, 76], "file": "actions/action_18_frames_73_76.mp4"}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "python": "3.10.20 | packaged by conda-forge | (main, Jun 11 2026, 03:31:56) [GCC 14.3.0]",
+  "python_executable": "/home/sub5-v2u2/miniconda3/envs/minwm/bin/python",
+  "platform": "Linux-6.8.0-117-generic-x86_64-with-glibc2.35",
+  "torch": "2.9.1+cu128",
+  "torch_cuda_version": "12.8",
+  "cuda_available": true,
+  "gpu_count": 8,
+  "gpu_name": "NVIDIA A800 80GB PCIe",
+  "transformers": "4.56.0"
+}

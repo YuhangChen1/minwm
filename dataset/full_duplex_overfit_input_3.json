@@ -1,0 +1,14 @@
+[
+  {
+    "caption": "A 3D animation featuring Ali, a dedicated university student studying physics, with dreams of becoming a renowned scientist. Ali is depicted as a young adult with a determined look on their face, wearing a lab coat over casual clothes. They are standing in front of a chalkboard filled with complex equations and formulas, surrounded by scientific equipment and books. The background showcases a modern university laboratory with various experiments in progress. Ali is gesturing enthusiastically towards the equations, illustrating a moment of inspiration or discovery. The scene emphasizes Ali’s passion and commitment to their academic pursuits. Medium shot.",
+    "pose_str": "right-8, a-11"
+  },
+  {
+    "caption": "\"A Day in the Life of a Busy Mom\" in a 3D animation style with anime influences. The scene opens with a close-up of a busy mom, depicted with a warm and friendly expression, as she wakes up early in the morning. She quickly gets dressed in a casual yet stylish outfit and prepares breakfast for her family. The kitchen is bustling with activity, and the mom moves efficiently from the stove to the refrigerator, preparing various dishes. Her movements are fluid and natural, reflecting her practiced routine. In the background, the family is shown waking up, yawning, and coming downstairs. The lighting is soft and warm, capturing the cozy atmosphere of a family home during the early morning hours. Wide shot, showing the full kitchen and family interaction.",
+    "pose_str": "left-8, w-4, a-7"
+  },
+  {
+    "caption": "\"A London Adventure: Family Vacation\" - A vibrant and colorful travel vlog showcasing a family of four exploring iconic London landmarks. The family consists of two adults and two children, all dressed in casual, modern attire suitable for sightseeing. They start their day at Buckingham Palace, where they watch the Changing of the Guard ceremony with awe and excitement. Next, they stroll across Trafalgar Square, admiring Nelson's Column and feeding pigeons. In the afternoon, they visit the Tower of London, where the children explore the Crown Jewels exhibit with wide-eyed wonder. The video captures the family's joy and laughter throughout their journey, with scenes filmed from various angles, including medium shots and close-ups, to highlight their interactions and reactions to each location. The overall style is lively and engaging, perfect for a fun-filled family vacation vlog.",
+    "pose_str": "w-4, d-8, a-7"
+  }
+]
