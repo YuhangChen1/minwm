@@ -21,3 +21,10 @@ hf download MIN-Lab/minWM-data \
   --repo-type dataset \
   --local-dir ./dataset_min20 \
   --include "${INCLUDES[@]}"
+
+
+export PIP_CACHE_DIR=/hyperai/home/.cache/pip
+export CONDA_PKGS_DIRS=/hyperai/home/.cache/conda
+export HF_HOME=/hyperai/home/.cache/huggingface
+export TORCH_HOME=/hyperai/home/.cache/torch
+export TRITON_CACHE_DIR=/hyperai/home/.cache/triton

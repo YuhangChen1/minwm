@@ -1,0 +1,71 @@
+project_root: /output/minwm
+
+base_checkpoint: ckpts/Wan21/Action2V/ar_diffusion_tf/model.pt
+vae_checkpoint: ckpts/Wan2.1-T2V-1.3B/Wan2.1_VAE.pth
+t5_checkpoint: ckpts/Wan2.1-T2V-1.3B/models_t5_umt5-xxl-enc-bf16.pth
+t5_tokenizer: ckpts/Wan2.1-T2V-1.3B/google/umt5-xxl
+dataset_path: dataset/SmallestData/000000_right8a11
+video_path: dataset/SmallestData/000000_right8a11/gen.mp4
+action_manifest: dataset/SmallestData/split_4f_actions/manifest.json
+cache_path: full_duplex/cache/smallest_000000
+output_dir: full_duplex/outputs/smallest_000000
+
+prompt: "A 3D animation featuring Ali, a dedicated university student studying physics, with dreams of becoming a renowned scientist. Ali is depicted as a young adult with a determined look on their face, wearing a lab coat over casual clothes. They are standing in front of a chalkboard filled with complex equations and formulas, surrounded by scientific equipment and books. The background showcases a modern university laboratory with various experiments in progress. Ali is gesturing enthusiastically towards the equations, illustrating a moment of inspiration or discovery. The scene emphasizes Ali’s passion and commitment to their academic pursuits. Medium shot."
+
+# The real sample has 19 transitions (right x8, a x11) and 20 VAE states.
+num_micro_turns: 19
+num_denoising_steps: 10
+num_frame_per_turn: 4
+max_time_index: 31
+target_height: 480
+target_width: 832
+latent_channels: 16
+latent_height: 60
+latent_width: 104
+patch_size: [1, 2, 2]
+
+learning_rate: 2.0e-5
+world_head_learning_rate_multiplier: 1.0
+world_prior_learning_rate_multiplier: 1.0
+weight_decay: 0.0
+batch_size: 1
+gradient_accumulation_steps: 1
+max_grad_norm: 10.0
+mixed_precision: bf16
+gradient_checkpointing: true
+seed: 20260711
+
+lambda_flow: 1.0
+lambda_state: 1.0
+lambda_camera: 1.0
+lambda_translation: 1.0
+lambda_rotation: 1.0
+lambda_intrinsics: 0.1
+
+save_every: 10
+log_every: 1
+max_steps: 100
+teacher_forcing_ratio: 0.0
+detach_between_turns: false
+
+# Model/runtime controls. Fidelity defaults use every checkpoint block and token.
+model_dim: 1536
+camera_dim: 13
+num_camera_tokens: 1
+spatial_token_stride: 1
+num_backbone_blocks: 30
+max_history_turns: -1
+attention_padding_strategy: power_of_two
+attention_pad_to_turns: 0
+train_backbone: true
+train_base_world_head: false
+world_residual_head: false
+world_time_space_prior: false
+timestep_shift: 5.0
+num_train_timesteps: 1000
+use_prope: true
+fixed_noise_seed: 20260711
+
+action_vocabulary: [NO_OP, right, a]
+camera_representation: w2c_translation_rotation6d_intrinsics
+cache_version: full_duplex_v1
