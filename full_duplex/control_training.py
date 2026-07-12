@@ -23,17 +23,59 @@ def _atomic_json(payload: dict[str, Any], path: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Synchronous, foreground controller for Full-Duplex overfit runs"
+        description="Synchronous, foreground controller for Full-Duplex overfit runs",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+The resource controls are independent:
+  --max-steps             target global optimizer step (fresh run: update count)
+  --num-denoising-steps   Flow/Euler updates inside every micro-turn
+  --blocks                pretrained Wan Transformer layers executed per model call
+  --spatial-token-stride  spatial patch-grid sampling interval (not video-frame stride)
+
+For the cached 60x104 latent and 2x2 patches, stride 8/4/2/1 selects
+28/104/390/1560 world tokens per modality per turn, respectively.
+""",
     )
     parser.add_argument("--config", default="full_duplex/configs/overfit.yaml")
     parser.add_argument("--mode", choices=("single", "rollout"), required=True)
     parser.add_argument("--run-name", required=True)
-    parser.add_argument("--max-steps", type=int, required=True)
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        required=True,
+        help=(
+            "Target global optimizer step; on a fresh run this is the update count, while "
+            "resume continues only until this value. Not denoising iterations"
+        ),
+    )
     parser.add_argument("--resume")
     parser.add_argument("--num-turns", type=int)
-    parser.add_argument("--num-denoising-steps", type=int)
-    parser.add_argument("--blocks", type=int)
-    parser.add_argument("--spatial-token-stride", type=int)
+    parser.add_argument(
+        "--num-denoising-steps",
+        type=int,
+        help=(
+            "Differentiable Flow/Euler steps inside each micro-turn (10 means "
+            "19 turns execute 190 growing-history model calls per rollout)"
+        ),
+    )
+    parser.add_argument(
+        "--blocks",
+        "--num-backbone-blocks",
+        dest="blocks",
+        type=int,
+        help=(
+            "Number of leading pretrained Wan Transformer blocks executed per model call; "
+            "the current checkpoint contains 30"
+        ),
+    )
+    parser.add_argument(
+        "--spatial-token-stride",
+        type=int,
+        help=(
+            "Sampling interval on the 30x52 latent patch grid; smaller is denser and more "
+            "expensive (8=28, 4=104, 2=390, 1=1560 tokens). Not temporal stride"
+        ),
+    )
     parser.add_argument("--max-history-turns", type=int)
     parser.add_argument("--attention-pad-to-turns", type=int)
     parser.add_argument("--learning-rate", type=float)

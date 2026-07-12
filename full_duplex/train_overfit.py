@@ -1,22 +1,58 @@
 from __future__ import annotations
 
 import argparse
+import json
 
 from full_duplex.config import load_config, refresh_training_config_hash
 from full_duplex.training import FullDuplexTrainer
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Full-Duplex Wan latent overfit worker",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Do not confuse the two kinds of steps:
+  --max-steps             target global optimizer step (fresh run: update count)
+  --num-denoising-steps   number of differentiable Euler updates per micro-turn
+
+--blocks controls Transformer depth. --spatial-token-stride controls only
+spatial patch density; it does not change RGB frames, actions, or temporal turns.
+""",
+    )
     parser.add_argument("--config", default="full_duplex/configs/overfit.yaml")
     parser.add_argument("--mode", choices=("single", "rollout"), required=True)
     parser.add_argument("--run-name", required=True)
-    parser.add_argument("--max-steps", type=int)
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        help=(
+            "Target global optimizer step; fresh runs perform this many updates and resumed "
+            "runs continue only until this value. Not denoising steps"
+        ),
+    )
     parser.add_argument("--resume")
     parser.add_argument("--num-turns", type=int)
-    parser.add_argument("--num-denoising-steps", type=int)
-    parser.add_argument("--blocks", type=int)
-    parser.add_argument("--spatial-token-stride", type=int)
+    parser.add_argument(
+        "--num-denoising-steps",
+        type=int,
+        help="Flow/Euler updates inside every micro-turn; current trained baseline uses 10",
+    )
+    parser.add_argument(
+        "--blocks",
+        "--num-backbone-blocks",
+        dest="blocks",
+        type=int,
+        help="Leading pretrained Wan Transformer blocks to execute; valid range is 1..30",
+    )
+    parser.add_argument(
+        "--spatial-token-stride",
+        type=int,
+        help=(
+            "Spatial sampling interval on the 30x52 patch grid: "
+            "8=28, 4=104, 2=390, 1=1560 tokens; not temporal stride"
+        ),
+    )
     parser.add_argument("--max-history-turns", type=int)
     parser.add_argument("--attention-pad-to-turns", type=int)
     parser.add_argument("--learning-rate", type=float)
@@ -61,11 +97,30 @@ def main() -> None:
         config["world_time_space_prior"] = True
     if args.train_base_world_head:
         config["train_base_world_head"] = True
+    if args.max_steps is not None:
+        # Persist the effective CLI value into manifests and checkpoints. This
+        # is the target global optimizer step (not an extra-resume count and
+        # not the per-turn denoising-step count).
+        config["max_steps"] = args.max_steps
+    for key in (
+        "max_steps",
+        "num_denoising_steps",
+        "num_backbone_blocks",
+        "spatial_token_stride",
+    ):
+        if int(config[key]) < 1:
+            raise ValueError(f"{key} must be positive, got {config[key]}")
     refresh_training_config_hash(config)
-    max_steps = args.max_steps if args.max_steps is not None else config["max_steps"]
+    controls = {
+        "target_global_optimizer_step": int(config["max_steps"]),
+        "denoising_steps_per_micro_turn": int(config["num_denoising_steps"]),
+        "backbone_blocks_per_model_call": int(config["num_backbone_blocks"]),
+        "spatial_patch_grid_stride": int(config["spatial_token_stride"]),
+    }
+    print(f"[training controls] {json.dumps(controls, sort_keys=True)}", flush=True)
     trainer = FullDuplexTrainer(config, args.mode, args.run_name)
     trainer.train(
-        max_steps=max_steps,
+        max_steps=config["max_steps"],
         resume=args.resume,
         override_resume_learning_rate=args.override_resume_learning_rate,
     )

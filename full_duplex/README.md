@@ -1,7 +1,8 @@
 # Full-Duplex Wan2.1 micro-turn fine-tuning
 
-This directory contains the latent-only implementation requested in `prompt.md`.
-It never calls the VAE decoder and does not reconstruct RGB video.
+This directory contains the latent training implementation requested in
+`prompt.md`. The training graph never calls the VAE decoder; the separate
+evaluation-only `decode_predictions.py` utility can export predicted RGB video.
 
 ## Verified sample contract
 
@@ -20,9 +21,13 @@ is preserved in `cache/smallest_000000/metadata.json` instead of being hidden.
 - `model.py`: strict base loading; explicit world/camera/action/noise tokens;
   type/turn embeddings; checkpoint 3D RoPE, PRoPE, self/cross attention, FFN,
   timestep conditioning and world output head; new camera encoder/head; optional
-  zero-initialized parallel world residual head for small-data adaptation.
+  zero-initialized parallel world residual head and optional zero-initialized
+  time×spatial flow prior for small-data adaptation.
 - `flow.py`: checkpoint-compatible Flow Matching interpolation, target and
   differentiable Euler step.
+- `lora.py`, `train_lora.py`: zero-initialized low-rank adapters for the
+  physical final Wan blocks; explicit pre-LoRA warm-start, exact resume and
+  self-contained adapter checkpoints.
 - `training.py`: fixed-noise 10-step denoising, autoregressive rollout without
   detach, cross-turn BPTT probe, losses, finite/gradient checks, checkpointing,
   resume, and exact reload test.
@@ -46,6 +51,58 @@ $PY full_duplex/preencode.py --config full_duplex/configs/overfit.yaml
 $PY -m unittest discover -s full_duplex/tests -v
 $PY full_duplex/visualize_mask.py
 ```
+
+## Training controls
+
+Use `control_training.py` for monitored foreground training. It launches
+`train_overfit.py`, whose `FullDuplexTrainer` implementation is in
+`training.py`. Four independent command-line controls must not be conflated:
+
+| CLI option | Meaning |
+|---|---|
+| `--max-steps` | Target global optimizer step; fresh run = update count, resume = continue to this step |
+| `--num-denoising-steps` | Differentiable Flow/Euler updates inside every micro-turn |
+| `--blocks` / `--num-backbone-blocks` | Leading pretrained Wan Transformer blocks executed per model call |
+| `--spatial-token-stride` | Spatial sampling interval on the latent patch grid; not frame stride |
+
+For example, this requests 100 optimizer updates, 10 denoising updates per
+turn, four Transformer blocks, and stride-8 spatial tokens:
+
+```bash
+$PY -u full_duplex/control_training.py \
+  --mode rollout --run-name rollout_100step_10denoise_4block_stride8 \
+  --max-steps 100 --num-denoising-steps 10 \
+  --blocks 4 --spatial-token-stride 8 \
+  --freeze-backbone --attention-pad-to-turns 19
+```
+
+These flags override the YAML for a new run and the effective values are saved
+to the run manifest and checkpoint. Ordinary `--resume` deliberately rejects
+changes to denoising steps, blocks, or stride; an architecture change requires
+an explicit warm-start/migration rather than silently treating it as the same
+training run.
+
+## Last-block LoRA
+
+The dedicated LoRA path executes all 30 checkpoint blocks and can adapt only
+the physical final N blocks. By default the existing Full-Duplex task delta is
+loaded and frozen, all original Wan parameters remain frozen, and only LoRA
+A/B matrices enter the optimizer:
+
+```bash
+$PY -u -m full_duplex.train_lora \
+  --warm-start RUN/checkpoints/best.pt \
+  --run-name lora_last4_rank8_rollout19 \
+  --max-steps 10 --num-turns 19 --num-denoising-steps 10 \
+  --num-backbone-blocks 30 --spatial-token-stride 8 \
+  --lora-last-blocks 4 --lora-rank 8 --lora-alpha 8 \
+  --learning-rate 1e-4 --attention-pad-to-turns 19
+```
+
+`--train-task-modules` optionally updates the Full-Duplex embeddings/heads
+alongside LoRA while still freezing every original Wan parameter. Exact code,
+parameter manifests, commands and the first real-data result are documented in
+`LORA_REPORT.md`.
 
 Full-fidelity single-turn overfit:
 
@@ -108,6 +165,13 @@ $PY -u full_duplex/control_training.py \
 unfreezes the checkpoint's timestep-conditioned output head while leaving the
 Transformer frozen; it is not enabled in the selected stable run.
 
+The optional `--world-time-space-prior` adds a trainable flow bias indexed only
+by the visible turn index and output patch coordinate. It never reads target
+content. Its table is zero initialized while preserving the global RNG state,
+so enabling it leaves the step-0 model function unchanged. Its separate LR
+group is controlled by `--world-prior-learning-rate-multiplier`; the feature is
+disabled in the base configuration and must be enabled explicitly.
+
 Evaluate the actual best checkpoint parameters, rather than stale pre-update
 training tensors:
 
@@ -119,6 +183,40 @@ $PY full_duplex/evaluate_predictions.py \
   --output RUN/evaluation.json
 $PY full_duplex/summarize_metrics.py --metrics RUN/metrics.jsonl
 ```
+
+Export a freshly generated latent rollout through the frozen real Wan2.1 VAE
+(this is intentionally separate from the training graph):
+
+```bash
+$PY -m full_duplex.predict_checkpoint \
+  --checkpoint RUN/checkpoints/best.pt \
+  --output RUN/video_export/predicted_latents.pt
+$PY -m full_duplex.decode_predictions \
+  --predictions RUN/video_export/predicted_latents.pt \
+  --vae-checkpoint ckpts/Wan2.1-T2V-1.3B/Wan2.1_VAE.pth \
+  --project-root /output/minwm \
+  --output RUN/video_export/prediction.mp4 --fps 24 --crf 18
+```
+
+The decoder asserts the exact latent and RGB shapes, rejects NaN/Inf, writes a
+contact sheet and a JSON provenance manifest, and does not prepend or decode a
+ground-truth context state. Nineteen predicted latent states therefore produce
+73 frames under Wan's `1 + 4 * (T - 1)` temporal decode rule.
+
+For a pure inference sampler ablation, `predict_checkpoint` can replace only
+the Euler sigma grid after the original checkpoint/config compatibility checks
+have succeeded:
+
+```bash
+$PY -m full_duplex.predict_checkpoint \
+  --checkpoint RUN/checkpoints/best.pt \
+  --num-denoising-steps 20 \
+  --output RUN/denoising_ablation/predictions_steps_20.pt
+```
+
+The output manifest records both the trained and inference step counts and the
+complete sigma grid. Checkpoint weights and fixed initial noise remain
+unchanged.
 
 ## Attention padding
 

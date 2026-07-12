@@ -14,6 +14,9 @@ prompt: "A 3D animation featuring Ali, a dedicated university student studying p
 
 # The real sample has 19 transitions (right x8, a x11) and 20 VAE states.
 num_micro_turns: 19
+# Flow/Euler updates INSIDE EACH micro-turn. This is not the number of optimizer
+# training updates. With 19 turns, 10 means 190 growing-history model calls per
+# rollout before backward.
 num_denoising_steps: 10
 num_frame_per_turn: 4
 max_time_index: 31
@@ -33,6 +36,9 @@ gradient_accumulation_steps: 1
 max_grad_norm: 10.0
 mixed_precision: bf16
 gradient_checkpointing: true
+# -1 checkpoints every executed block. Dedicated teacher-forcing runs may use
+# an explicit prefix count (for example 10 of 30) to trade HBM for speed.
+gradient_checkpointing_blocks: -1
 seed: 20260711
 
 lambda_flow: 1.0
@@ -44,7 +50,17 @@ lambda_intrinsics: 0.1
 
 save_every: 10
 log_every: 1
+# Target global optimizer step. On a fresh run this is the update count; when
+# resuming step 200, max_steps 250 performs 50 more updates. CLI: --max-steps.
+# This is independent of num_denoising_steps above.
 max_steps: 100
+# Baseline path: predicted state t becomes input state t+1 and the graph spans
+# turns. train_teacher_forcing.py overrides these fields to previous-GT input,
+# ratio 1.0, per-turn backward, and explicit cross-turn detach.
+training_regime: autoregressive_rollout
+teacher_forced_world_inputs: false
+teacher_force_camera: false
+sequential_turn_backward: false
 teacher_forcing_ratio: 0.0
 detach_between_turns: false
 
@@ -52,7 +68,13 @@ detach_between_turns: false
 model_dim: 1536
 camera_dim: 13
 num_camera_tokens: 1
+# Spatial sampling interval on the 30x52 patch grid, NOT RGB/video-frame stride.
+# 8 -> 28 tokens, 4 -> 104, 2 -> 390, 1 -> all 1560. Smaller is clearer but
+# substantially increases sequence length, attention cost, and activation memory.
 spatial_token_stride: 1
+# Number of leading pretrained Wan Transformer blocks executed per model call.
+# The checkpoint contains 30 and all are loaded even when this runtime value is
+# reduced. More blocks increase representation depth and roughly linear compute.
 num_backbone_blocks: 30
 max_history_turns: -1
 attention_padding_strategy: power_of_two
@@ -61,6 +83,27 @@ train_backbone: true
 train_base_world_head: false
 world_residual_head: false
 world_time_space_prior: false
+# LoRA is disabled on the baseline path. The dedicated train_lora.py warm-start
+# enables it and adapts only the physical final N blocks of the complete
+# 30-block checkpoint. Base Wan weights remain frozen.
+lora_enabled: false
+lora_last_blocks: 4
+lora_rank: 8
+lora_alpha: 8.0
+lora_dropout: 0.0
+lora_train_task_modules: false
+lora_learning_rate_multiplier: 1.0
+lora_targets:
+  - self_attn.q
+  - self_attn.k
+  - self_attn.v
+  - self_attn.o
+  - cross_attn.q
+  - cross_attn.k
+  - cross_attn.v
+  - cross_attn.o
+  - ffn.0
+  - ffn.2
 timestep_shift: 5.0
 num_train_timesteps: 1000
 use_prope: true

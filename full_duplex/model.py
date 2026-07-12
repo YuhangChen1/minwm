@@ -12,6 +12,12 @@ import torch.nn.functional as F
 from torch.nn.attention.flex_attention import BlockMask, create_block_mask
 
 from full_duplex.camera import CAMERA_DIM, camera_to_viewmats_and_Ks
+from full_duplex.lora import (
+    DEFAULT_LORA_TARGETS,
+    inject_lora_into_last_blocks,
+    lora_parameter_names,
+    set_lora_trainable,
+)
 from full_duplex.tokens import (
     SequenceLayout,
     SpecialTokenVocabulary,
@@ -169,11 +175,56 @@ class FullDuplexWanModel(nn.Module):
             torch.set_rng_state(cpu_rng_state)
             nn.init.zeros_(self.world_time_space_prior.weight)
         self._initialize_new_embeddings()
+        # Spatial stride samples the latent *patch grid* in both H and W. It is
+        # unrelated to RGB-frame stride or the number of micro-turns. Smaller
+        # values preserve more spatial detail but make every attention sequence
+        # longer (for this sample: 8/4/2/1 -> 28/104/390/1560 tokens).
         self.spatial_token_stride = int(config["spatial_token_stride"])
+        # All 30 checkpoint blocks are loaded. This runtime depth selects how
+        # many leading pretrained blocks are actually executed per denoise call.
         self.num_backbone_blocks = int(config["num_backbone_blocks"])
         if not 1 <= self.num_backbone_blocks <= len(backbone.blocks):
             raise ValueError("num_backbone_blocks must be in [1, checkpoint layer count]")
+        self.lora_report: dict[str, object] | None = None
+        if config.get("lora_enabled", False):
+            # "Last N blocks" means the physical final layers of the complete
+            # Wan checkpoint. Running only a prefix would silently skip every
+            # injected adapter, so LoRA mode requires all checkpoint blocks.
+            if self.num_backbone_blocks != len(backbone.blocks):
+                raise ValueError(
+                    "LoRA on the physical last Wan blocks requires "
+                    f"num_backbone_blocks={len(backbone.blocks)}, got "
+                    f"{self.num_backbone_blocks}"
+                )
+            report = inject_lora_into_last_blocks(
+                backbone.blocks,
+                last_blocks=int(config.get("lora_last_blocks", 4)),
+                rank=int(config.get("lora_rank", 8)),
+                alpha=float(config.get("lora_alpha", 8.0)),
+                dropout=float(config.get("lora_dropout", 0.0)),
+                target_paths=tuple(config.get("lora_targets", DEFAULT_LORA_TARGETS)),
+            )
+            self.lora_report = report.to_dict()
+        # Activation checkpointing is a runtime memory/speed control and does
+        # not alter the forward function. ``-1`` means every executed block;
+        # an explicit N checkpoints only leading block indices [0, N), leaving
+        # the remaining blocks' activations resident to trade HBM for speed.
         self.gradient_checkpointing = bool(config["gradient_checkpointing"])
+        configured_checkpoint_blocks = int(config.get("gradient_checkpointing_blocks", -1))
+        if configured_checkpoint_blocks < 0:
+            configured_checkpoint_blocks = (
+                self.num_backbone_blocks if self.gradient_checkpointing else 0
+            )
+        if not 0 <= configured_checkpoint_blocks <= self.num_backbone_blocks:
+            raise ValueError(
+                "gradient_checkpointing_blocks must be -1 or within the executed "
+                f"block count [0,{self.num_backbone_blocks}]"
+            )
+        if not self.gradient_checkpointing and configured_checkpoint_blocks != 0:
+            raise ValueError(
+                "gradient_checkpointing=false requires gradient_checkpointing_blocks=0 or -1"
+            )
+        self.num_gradient_checkpoint_blocks = configured_checkpoint_blocks
         self.use_prope = bool(config["use_prope"])
         self._mask_cache: dict[tuple[Any, ...], tuple[BlockMask, BlockMask | None]] = {}
         self._patch_cache: dict[int, tuple[torch.Tensor, torch.Tensor, PatchGrid]] = {}
@@ -254,22 +305,50 @@ class FullDuplexWanModel(nn.Module):
             "world_residual_head.",
             "world_time_space_prior.",
         )
-        return [name for name, _ in self.named_parameters() if name.startswith(prefixes)]
+        return sorted(name for name, _ in self.named_parameters() if name.startswith(prefixes))
+
+    def lora_parameter_names(self) -> list[str]:
+        return lora_parameter_names(self)
+
+    def adapter_state_names(self) -> list[str]:
+        """Self-contained task/LoRA delta keys stored over the strict base."""
+        return sorted(set(self.new_parameter_names()) | set(self.lora_parameter_names()))
 
     def configure_trainable_parameters(
         self,
         train_backbone: bool,
         train_base_world_head: bool = False,
     ) -> dict[str, int]:
+        lora_enabled = bool(self.config.get("lora_enabled", False))
+        if lora_enabled and train_backbone:
+            raise ValueError("LoRA mode freezes checkpoint weights; train_backbone must be false")
+        self.requires_grad_(False)
         self.backbone.requires_grad_(train_backbone)
         if train_base_world_head:
             self.backbone.head.requires_grad_(True)
-        for name, parameter in self.named_parameters():
-            if not name.startswith("backbone."):
-                parameter.requires_grad_(True)
+        train_task_modules = not lora_enabled or bool(
+            self.config.get("lora_train_task_modules", False)
+        )
+        if train_task_modules:
+            for name, parameter in self.named_parameters():
+                if not name.startswith("backbone."):
+                    parameter.requires_grad_(True)
+        if lora_enabled:
+            set_lora_trainable(self, True)
         total = sum(parameter.numel() for parameter in self.parameters())
         trainable = sum(parameter.numel() for parameter in self.parameters() if parameter.requires_grad)
-        return {"total": total, "trainable": trainable, "frozen": total - trainable}
+        lora_names = set(self.lora_parameter_names())
+        lora = sum(
+            parameter.numel()
+            for name, parameter in self.named_parameters()
+            if parameter.requires_grad and name in lora_names
+        )
+        return {
+            "total": total,
+            "trainable": trainable,
+            "frozen": total - trainable,
+            "lora_trainable": lora,
+        }
 
     def _patchify(self, latent: torch.Tensor) -> tuple[torch.Tensor, PatchGrid]:
         if latent.ndim != 5 or latent.shape[1] != 1 or latent.shape[2] != self.backbone.in_dim:
@@ -714,8 +793,13 @@ class FullDuplexWanModel(nn.Module):
             )
         block_mask, prope_mask = self._make_masks(layout, video_mask, padded_length, device)
 
-        for block in self.backbone.blocks[: self.num_backbone_blocks]:
-            if self.gradient_checkpointing and torch.is_grad_enabled():
+        for block_index, block in enumerate(
+            self.backbone.blocks[: self.num_backbone_blocks]
+        ):
+            if (
+                block_index < self.num_gradient_checkpoint_blocks
+                and torch.is_grad_enabled()
+            ):
                 def run(h, m, c, block=block):
                     return self._block_forward(
                         block, h, m, c, context_lengths, coords, video_mask,

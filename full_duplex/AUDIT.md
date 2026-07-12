@@ -59,19 +59,42 @@ semantic manifest is used for IDs/alignment. Exact hashes and both paths are in
 |---|---|---|---|
 | Special vocabulary | `full_duplex/tokens.py`, `SpecialTokenVocabulary`, lines 68–92 | 9 base names + `TIME_INDEX_0..31` → 41 distinct integer IDs | `nn.Embedding(41,1536)` fp32 master weights, trainable; initialized `normal(0,0.02)`; absent from base checkpoint by construction |
 | Exact sequence and spans | `full_duplex/tokens.py`, `build_layout`, lines 95–186 | world tokens `1560`, camera tokens `1`, 19 turns → conceptual sequence length `89187` | output content mask contains exactly `19*(1560+1)=29659` bool targets; boundaries/time/null never targets |
-| Causal visibility | `full_duplex/tokens.py`, `build_attention_mask`, lines 189–205; `full_duplex/model.py`, `_make_masks`, lines 464–521 | `SequenceLayout[L]` → boolean/FlexAttention `[L,L]` visibility | past all visible; same-turn non-output keys visible; current masked output keys and all future keys invisible; padding invalid |
-| World/noise encoder | `full_duplex/model.py`, `FullDuplexWanModel._patchify`, lines 257–289 | `[B,1,16,60,104]` → `[B,1560,1536]` at fidelity stride 1 | reuses strict checkpoint `patch_embedding`; training autocast performs linear/attention math in bf16 |
-| Camera/action encoders | `full_duplex/model.py`, `CameraEncoder`, lines 100–113; `_assemble_sequence`, lines 326–447 | camera `[B,13]` → `[B,1,1536]`; action ID `[B]` → `[B,1,1536]` | explicit tokens are distinct from per-video-token PRoPE geometry |
-| Stream assembly | `full_duplex/model.py`, `_assemble_sequence`, lines 326–447 | list of chronological `DuplexTurn` objects → hidden `[B,L,1536]`, coordinates `[L,3]`, viewmats `[B,L,4,4]`, Ks `[B,L,3,3]` | current world/camera outputs are trainable mask embeddings; historical output slots contain model predictions, never GT |
-| RoPE + PRoPE | `full_duplex/model.py`, `_scattered_rope`, lines 450–476; `_full_duplex_self_attention`, lines 537–600 | Q/K/V `[B,L,12,128]` plus `(turn,y,x)` and w2c/K → attention `[B,L,1536]` | base 3D frequencies and every checkpoint `prope_o` are reused; explicit camera token remains separate |
-| Text cross-attention | `full_duplex/model.py`, `_block_forward`, lines 602–633; `forward`, line 635 onward | Q = stream hidden `[B,L,1536]`; K/V = cached T5 `[B,512,4096]` projected to `[B,512,1536]` | same zero-padded/masked frozen prompt embedding is reused by every executed checkpoint block and every turn |
-| Outputs | `full_duplex/model.py`, `FullDuplexWanModel.forward`, line 635 onward | current masked world slots → flow `[B,1,16,60,104]`; masked camera slot → camera `[B,13]` | base world head reused; stable translation+6D rotation+intrinsics residual camera head and optional zero-initialized world residual head are new/trainable |
-| Differentiable denoising | `full_duplex/flow.py`, lines 11–46; `full_duplex/training.py`, `_denoise_turn`, lines 269–340 | fixed initial epsilon `[B,1,16,60,104]` → 10 Euler updates → predicted latent same shape | checkpoint sign `epsilon-x0`; sigma decreases 1→0; no detach and initial-noise SHA/mutation assertion |
-| Rollout/BPTT | `full_duplex/training.py`, `forward_loss`, lines 342–449; `train_step`, lines 458–537 | predicted state/camera at turn `t` → input at `t+1`, through 19 turns | grad-fn assertions at boundaries; future-only contribution to turn-0 gradient recovered after one total backward and asserted finite/nonzero |
-| Checkpoint/reload | `full_duplex/training.py`, lines 539–873 | strict base + explicit trainable delta + optimizer/scheduler/RNG/config → restored model | all 885 intentionally frozen base keys are enumerated and checked exactly; unexpected keys must be empty; same probe output max error must be zero |
-| Optimizer groups | `full_duplex/training.py`, `FullDuplexTrainer.__init__`, lines 117–184; `load_checkpoint`, lines 617–775 | named trainable parameters → default/world-head AdamW groups; old one-group state → two groups | LR changes require an explicit CLI opt-in; parameter order and full moment state are checked during migration rather than discarded |
+| Causal visibility | `full_duplex/tokens.py`, `build_attention_mask`, lines 189–205; `full_duplex/model.py`, `_make_masks`, lines 495–552 | `SequenceLayout[L]` → boolean/FlexAttention `[L,L]` visibility | past all visible; same-turn non-output keys visible; current masked output keys and all future keys invisible; padding invalid |
+| World/noise encoder | `full_duplex/model.py`, `FullDuplexWanModel._patchify`, lines 274–306 | `[B,1,16,60,104]` → `[B,1560,1536]` at fidelity stride 1 | reuses strict checkpoint `patch_embedding`; training autocast performs linear/attention math in bf16 |
+| Camera/action encoders | `full_duplex/model.py`, `CameraEncoder`, lines 100–113; `_assemble_sequence`, lines 343–464 | camera `[B,13]` → `[B,1,1536]`; action ID `[B]` → `[B,1,1536]` | explicit tokens are distinct from per-video-token PRoPE geometry |
+| Stream assembly | `full_duplex/model.py`, `_assemble_sequence`, lines 343–464 | list of chronological `DuplexTurn` objects → hidden `[B,L,1536]`, coordinates `[L,3]`, viewmats `[B,L,4,4]`, Ks `[B,L,3,3]` | current world/camera outputs are trainable mask embeddings; historical output slots contain model predictions, never GT |
+| RoPE + PRoPE | `full_duplex/model.py`, `_scattered_rope`, lines 467–493; `_full_duplex_self_attention`, lines 554–617 | Q/K/V `[B,L,12,128]` plus `(turn,y,x)` and w2c/K → attention `[B,L,1536]` | base 3D frequencies and every checkpoint `prope_o` are reused; explicit camera token remains separate |
+| Text cross-attention | `full_duplex/model.py`, `_block_forward`, lines 619–650; `forward`, line 652 onward | Q = stream hidden `[B,L,1536]`; K/V = cached T5 `[B,512,4096]` projected to `[B,512,1536]` | same zero-padded/masked frozen prompt embedding is reused by every executed checkpoint block and every turn |
+| Outputs | `full_duplex/model.py`, `FullDuplexWanModel.forward`, line 652 onward | current masked world slots → flow `[B,1,16,60,104]`; masked camera slot → camera `[B,13]` | base world head reused; stable camera residual head, world residual head, and default-off time×spatial flow prior are explicit trainable deltas |
+| Differentiable denoising | `full_duplex/flow.py`, lines 11–46; `full_duplex/training.py`, `_denoise_turn`, lines 297–368 | fixed initial epsilon `[B,1,16,60,104]` → 10 Euler updates → predicted latent same shape | checkpoint sign `epsilon-x0`; sigma decreases 1→0; no detach and initial-noise SHA/mutation assertion |
+| Rollout/BPTT | `full_duplex/training.py`, `forward_loss`, lines 370–477; `train_step`, lines 486–573 | predicted state/camera at turn `t` → input at `t+1`, through 19 turns | grad-fn assertions at boundaries; future-only contribution to turn-0 gradient recovered after one total backward and asserted finite/nonzero |
+| Checkpoint/reload | `full_duplex/training.py`, lines 575–922 | strict base + explicit trainable delta + optimizer/scheduler/RNG/config → restored model | all 885 intentionally frozen base keys are enumerated and checked exactly; unexpected keys must be empty; same probe output max error must be zero |
+| Optimizer groups | `full_duplex/training.py`, `FullDuplexTrainer.__init__`, lines 117–222; `load_checkpoint`, lines 654–825 | named parameters → default/world-head/world-prior AdamW groups | LR changes require explicit opt-in; parameter order and full moment state are checked during migration rather than discarded |
 
 The assembled hidden tensor is logged as fp32 because trainable embedding master
 weights are fp32 and residual additions promote the stream. Under the configured
 CUDA autocast, checkpoint linear/attention/FFN kernels compute in bf16. This is
 reported explicitly rather than labeling the entire hidden stream bf16.
+
+## Final runtime results
+
+- Selected run: `rollout_19turn_stride8_1block_worldprior_final200`; best and
+  latest are step 200. Total/state/flow/camera loss changed from
+  `5.706124/2.755545/2.865153/0.085427` to
+  `2.534786/1.266439/1.268220/0.000127`.
+- Fresh-model reload probe: flow max absolute error `0.0`, camera `0.0`.
+- Fresh 19-turn rollout: latent MSE `1.266472`, cosine `0.413235`, camera
+  translation L2 `0.012891`, rotation `0.489831°`, intrinsics RMSE `0.007636`.
+- Cross-turn evidence: turn-0 future-only gradient norm `0.084259`. Independent
+  loss-path audit found finite nonzero norms for flow/state to special embeddings
+  (`9.9035/6.6332`), flow/state to the world residual head (`10.8271/12.1627`),
+  and camera loss to the camera head (`0.2845`).
+- Resource profile: 19 turns, all history, 10 denoising steps, stride 8, one
+  checkpoint block, bf16 autocast, 11.93 GiB maximum allocated, 13.43 s mean
+  optimizer-step time. The native stride-1, 30-block graph was separately tried
+  and failed at 79.09 GiB in use; the 30-block stride-8 backward passed at
+  44.18 GiB.
+- Scientific limitation: final MSE remains above the zero-state baseline
+  `0.696027` and stride-8 low-pass reference `0.376614`. The implementation and
+  optimization trend pass, but the strict `predicted latent ≈ ground truth`
+  acceptance claim remains unproven.

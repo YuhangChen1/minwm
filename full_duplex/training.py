@@ -17,6 +17,7 @@ import torch.nn.functional as F
 
 from full_duplex.camera import CAMERA_REPRESENTATION, CameraLosses, camera_loss
 from full_duplex.flow import denoising_sigmas, flow_step, flow_target
+from full_duplex.lora import assert_zero_lora_residual
 from full_duplex.model import DuplexTurn, FullDuplexWanModel
 
 
@@ -146,11 +147,17 @@ class FullDuplexTrainer:
             for name, parameter in named_trainable
             if name.startswith(world_prior_prefix)
         ]
+        lora_parameters = [
+            parameter
+            for name, parameter in named_trainable
+            if name.endswith(".lora_A") or name.endswith(".lora_B")
+        ]
         other_parameters = [
             parameter
             for name, parameter in named_trainable
             if not name.startswith(world_head_prefixes)
             and not name.startswith(world_prior_prefix)
+            and not (name.endswith(".lora_A") or name.endswith(".lora_B"))
         ]
         world_head_multiplier = float(
             config.get("world_head_learning_rate_multiplier", 1.0)
@@ -158,8 +165,13 @@ class FullDuplexTrainer:
         world_prior_multiplier = float(
             config.get("world_prior_learning_rate_multiplier", 1.0)
         )
-        if world_head_multiplier <= 0 or world_prior_multiplier <= 0:
-            raise ValueError("World LR multipliers must be positive")
+        lora_multiplier = float(config.get("lora_learning_rate_multiplier", 1.0))
+        if (
+            world_head_multiplier <= 0
+            or world_prior_multiplier <= 0
+            or lora_multiplier <= 0
+        ):
+            raise ValueError("World and LoRA LR multipliers must be positive")
         if world_head_multiplier != 1.0 and not world_head_parameters:
             raise ValueError(
                 "A world-head LR multiplier requires world_residual_head or a trainable base head"
@@ -168,11 +180,15 @@ class FullDuplexTrainer:
             raise ValueError(
                 "A world-prior LR multiplier requires world_time_space_prior: true"
             )
+        if lora_multiplier != 1.0 and not lora_parameters:
+            raise ValueError("A LoRA LR multiplier requires lora_enabled: true")
         default_parameters = list(other_parameters)
         if world_head_multiplier == 1.0:
             default_parameters.extend(world_head_parameters)
         if world_prior_multiplier == 1.0:
             default_parameters.extend(world_prior_parameters)
+        if lora_multiplier == 1.0:
+            default_parameters.extend(lora_parameters)
         optimizer_groups = []
         if default_parameters:
             optimizer_groups.append(
@@ -198,6 +214,14 @@ class FullDuplexTrainer:
                     "group_name": "world_prior",
                 }
             )
+        if lora_multiplier != 1.0:
+            optimizer_groups.append(
+                {
+                    "params": lora_parameters,
+                    "lr": config["learning_rate"] * lora_multiplier,
+                    "group_name": "lora",
+                }
+            )
         self.optimizer = torch.optim.AdamW(
             optimizer_groups,
             lr=config["learning_rate"],
@@ -218,6 +242,7 @@ class FullDuplexTrainer:
         self.best_step = -1
         self.loss_history: list[dict[str, Any]] = []
         self.last_step_output: StepOutput | None = None
+        self.warm_start_report: dict[str, Any] | None = None
         self._write_run_manifest()
 
     @staticmethod
@@ -261,6 +286,9 @@ class FullDuplexTrainer:
         manifest = {
             "mode": self.mode,
             "run_name": self.run_name,
+            "training_regime": self.config.get(
+                "training_regime", "autoregressive_rollout"
+            ),
             "config": self.config,
             "parameter_counts": self.parameter_counts,
             "base_load_report": self.model.load_report,
@@ -273,6 +301,13 @@ class FullDuplexTrainer:
                 if hasattr(self.model, "world_time_space_prior")
                 else None
             ),
+            "gradient_checkpointing_blocks": self.model.num_gradient_checkpoint_blocks,
+            "lora": self.model.lora_report,
+            "lora_trainable_parameter_names": self.model.lora_parameter_names(),
+            "lora_train_task_modules": bool(
+                self.config.get("lora_train_task_modules", False)
+            ),
+            "warm_start": self.warm_start_report,
             "new_parameter_initialization": (
                 "normal(std=0.02) embeddings; Xavier camera encoder; "
                 "zero camera/world residual outputs and zero time-space world prior"
@@ -557,6 +592,14 @@ class FullDuplexTrainer:
                 ),
                 self.optimizer.param_groups[0]["lr"],
             ),
+            "lora_learning_rate": next(
+                (
+                    group["lr"]
+                    for group in self.optimizer.param_groups
+                    if group.get("group_name") == "lora"
+                ),
+                self.optimizer.param_groups[0]["lr"],
+            ),
             "peak_gpu_memory_gib": torch.cuda.max_memory_allocated(self.device) / 2**30,
             "elapsed_seconds": elapsed,
             "latent_prediction_mse": float(output.state_loss.detach()),
@@ -577,6 +620,13 @@ class FullDuplexTrainer:
         if self.config["train_backbone"]:
             keys = list(full_state)
             state_format = "full"
+        elif self.config.get("lora_enabled", False):
+            # LoRA-only training freezes the warm-started Full-Duplex task
+            # modules, but the checkpoint must still contain them. Otherwise a
+            # fresh strict-base reload would recreate random task embeddings and
+            # heads and silently produce a different model.
+            keys = self.model.adapter_state_names()
+            state_format = "full_duplex_lora_delta_over_strict_base"
         else:
             trainable_names = {
                 name for name, parameter in self.model.named_parameters() if parameter.requires_grad
@@ -592,6 +642,9 @@ class FullDuplexTrainer:
             "model": model_state,
             "model_state_format": state_format,
             "model_keys": model_keys,
+            "trainable_model_keys": sorted(
+                name for name, parameter in self.model.named_parameters() if parameter.requires_grad
+            ),
             "optimizer": self.optimizer.state_dict(),
             "lr_scheduler": self.lr_scheduler.state_dict(),
             "global_step": self.global_step,
@@ -612,6 +665,20 @@ class FullDuplexTrainer:
                 "world_residual_head": self.config.get("world_residual_head", False),
                 "world_time_space_prior": self.config.get("world_time_space_prior", False),
                 "train_base_world_head": self.config.get("train_base_world_head", False),
+                "lora_enabled": self.config.get("lora_enabled", False),
+                "lora_last_blocks": self.config.get("lora_last_blocks"),
+                "lora_rank": self.config.get("lora_rank"),
+                "lora_alpha": self.config.get("lora_alpha"),
+                "lora_dropout": self.config.get("lora_dropout"),
+                "lora_targets": self.config.get("lora_targets"),
+                "lora_train_task_modules": self.config.get(
+                    "lora_train_task_modules", False
+                ),
+                "training_regime": self.config.get(
+                    "training_regime", "autoregressive_rollout"
+                ),
+                "gradient_checkpointing": self.config["gradient_checkpointing"],
+                "gradient_checkpointing_blocks": self.model.num_gradient_checkpoint_blocks,
             },
             "training_config": self.config,
             "token_vocabulary": self.model.vocabulary.as_dict(),
@@ -629,6 +696,7 @@ class FullDuplexTrainer:
             "fixed_noise_sha256": self.fixed_noise_sha256,
             "mode": self.mode,
             "run_name": self.run_name,
+            "warm_start": self.warm_start_report,
         }
 
     def save_checkpoint(self, metrics: dict[str, Any], *, named: bool, best: bool) -> Path | None:
@@ -651,6 +719,105 @@ class FullDuplexTrainer:
                 result = best_path
         return result
 
+    def load_warm_start(self, path: str | Path) -> dict[str, Any]:
+        """Load a prior Full-Duplex task delta while resetting training state.
+
+        This differs intentionally from resume: architecture/runtime controls
+        may change, optimizer moments and global step are not inherited, and
+        every current LoRA matrix must still have its zero initial residual.
+        The later LoRA checkpoints save both this frozen task delta and LoRA,
+        so they remain independently reloadable over the strict base model.
+        """
+
+        if not self.config.get("lora_enabled", False):
+            raise RuntimeError("Warm-start is currently reserved for explicit LoRA training")
+        checkpoint_path = Path(path).resolve()
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        if checkpoint.get("model_state_format") != "trainable_delta_over_strict_base":
+            raise RuntimeError(
+                "LoRA warm-start requires a pre-LoRA trainable_delta_over_strict_base checkpoint"
+            )
+        if checkpoint["preprocessing_metadata_hash"] != self.preprocessing_metadata[
+            "preprocessing_config_hash"
+        ]:
+            raise RuntimeError("Warm-start preprocessing metadata hash mismatch")
+        if checkpoint["fixed_noise_sha256"] != self.fixed_noise_sha256:
+            raise RuntimeError("Warm-start fixed-noise identity mismatch")
+        if checkpoint["base_checkpoint_identity"] != self.preprocessing_metadata[
+            "identities"
+        ]["base_checkpoint"]:
+            raise RuntimeError("Warm-start strict-base checkpoint identity mismatch")
+
+        state = checkpoint["model"]
+        source_keys = set(checkpoint["model_keys"])
+        if set(state) != source_keys:
+            raise RuntimeError("Warm-start source delta key manifest mismatch")
+        required_task_keys = set(self.model.new_parameter_names())
+        if source_keys != required_task_keys:
+            raise RuntimeError(
+                "Warm-start task-module mismatch: "
+                f"missing_in_source={sorted(required_task_keys - source_keys)}, "
+                f"unexpected_in_source={sorted(source_keys - required_task_keys)}"
+            )
+        current_state = self.model.state_dict()
+        for key, value in state.items():
+            if key not in current_state:
+                raise RuntimeError(f"Warm-start key absent from current model: {key}")
+            if value.shape != current_state[key].shape:
+                raise RuntimeError(
+                    f"Warm-start shape mismatch for {key}: {value.shape} vs "
+                    f"{current_state[key].shape}"
+                )
+            if not torch.isfinite(value).all():
+                raise FloatingPointError(f"Warm-start tensor is non-finite: {key}")
+
+        incompatible = self.model.load_state_dict(state, strict=False)
+        missing, unexpected = list(incompatible.missing_keys), list(incompatible.unexpected_keys)
+        allowed_missing = set(current_state) - source_keys
+        if set(missing) != allowed_missing or unexpected:
+            raise RuntimeError(
+                f"Warm-start load mismatch missing={missing}, unexpected={unexpected}"
+            )
+        assert_zero_lora_residual(self.model)
+        previous_config = checkpoint["training_config"]
+        report = {
+            "source_checkpoint": str(checkpoint_path),
+            "source_global_step": int(checkpoint["global_step"]),
+            "source_best_step": int(checkpoint["best_step"]),
+            "source_best_loss": float(checkpoint["best_loss"]),
+            "source_model_state_format": checkpoint["model_state_format"],
+            "loaded_task_keys": sorted(source_keys),
+            "loaded_task_elements": int(sum(value.numel() for value in state.values())),
+            "missing_keys": missing,
+            "unexpected_keys": unexpected,
+            "lora_zero_residual_verified": True,
+            "architecture_changes": {
+                "num_backbone_blocks": {
+                    "source": previous_config["num_backbone_blocks"],
+                    "current": self.config["num_backbone_blocks"],
+                },
+                "spatial_token_stride": {
+                    "source": previous_config["spatial_token_stride"],
+                    "current": self.config["spatial_token_stride"],
+                },
+                "lora_enabled": {"source": False, "current": True},
+            },
+            "optimizer_state_inherited": False,
+            "global_step_reset_to_zero": True,
+        }
+        self.warm_start_report = report
+        self._write_run_manifest()
+        report_path = self.run_dir / "warm_start_report.json"
+        with report_path.open("w", encoding="utf-8") as handle:
+            json.dump(report, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+        print(
+            f"[warm start] loaded task delta keys({len(source_keys)}) from "
+            f"{checkpoint_path}; missing({len(missing)})={missing}; unexpected={unexpected}",
+            flush=True,
+        )
+        return report
+
     def load_checkpoint(
         self,
         path: str | Path,
@@ -659,6 +826,12 @@ class FullDuplexTrainer:
     ) -> None:
         checkpoint = torch.load(path, map_location="cpu", weights_only=False)
         resume_keys = (
+            "training_regime",
+            "teacher_forced_world_inputs",
+            "teacher_force_camera",
+            "sequential_turn_backward",
+            "teacher_forcing_ratio",
+            "detach_between_turns",
             "base_checkpoint",
             "cache_path",
             "num_micro_turns",
@@ -673,10 +846,18 @@ class FullDuplexTrainer:
             "train_base_world_head",
             "world_residual_head",
             "world_time_space_prior",
+            "lora_enabled",
+            "lora_last_blocks",
+            "lora_rank",
+            "lora_alpha",
+            "lora_dropout",
+            "lora_targets",
+            "lora_train_task_modules",
             "use_prope",
             "learning_rate",
             "world_head_learning_rate_multiplier",
             "world_prior_learning_rate_multiplier",
+            "lora_learning_rate_multiplier",
             "weight_decay",
             "lambda_flow",
             "lambda_state",
@@ -689,14 +870,32 @@ class FullDuplexTrainer:
         )
         previous_config = checkpoint["training_config"]
         resume_defaults = {
+            "training_regime": "autoregressive_rollout",
+            "teacher_forced_world_inputs": False,
+            "teacher_force_camera": False,
+            "sequential_turn_backward": False,
+            "teacher_forcing_ratio": 0.0,
+            "detach_between_turns": False,
             "world_residual_head": False,
             "world_time_space_prior": False,
             "train_base_world_head": False,
             "world_head_learning_rate_multiplier": 1.0,
             "world_prior_learning_rate_multiplier": 1.0,
+            "lora_enabled": False,
+            "lora_last_blocks": 4,
+            "lora_rank": 8,
+            "lora_alpha": 8.0,
+            "lora_dropout": 0.0,
+            "lora_targets": None,
+            "lora_train_task_modules": False,
+            "lora_learning_rate_multiplier": 1.0,
         }
         mismatches = {}
         for key in resume_keys:
+            if key.startswith("lora_") and not previous_config.get(
+                "lora_enabled", False
+            ) and not self.config.get("lora_enabled", False):
+                continue
             default = resume_defaults.get(key)
             previous_value = previous_config.get(key, default)
             current_value = self.config.get(key, default)
@@ -710,6 +909,7 @@ class FullDuplexTrainer:
             "learning_rate",
             "world_head_learning_rate_multiplier",
             "world_prior_learning_rate_multiplier",
+            "lora_learning_rate_multiplier",
         ):
             mismatch = mismatches.pop(key, None)
             if mismatch is not None:
@@ -744,6 +944,34 @@ class FullDuplexTrainer:
             if set(missing) != allowed_missing or unexpected:
                 raise RuntimeError(
                     f"Delta reload mismatch missing={missing}, unexpected={unexpected}"
+                )
+        elif state_format == "full_duplex_lora_delta_over_strict_base":
+            expected = set(checkpoint["model_keys"])
+            if set(state) != expected:
+                raise RuntimeError("LoRA checkpoint adapter-state key manifest mismatch")
+            current_adapter = set(self.model.adapter_state_names())
+            if expected != current_adapter:
+                raise RuntimeError(
+                    "LoRA checkpoint/current adapter mismatch: "
+                    f"missing_in_checkpoint={sorted(current_adapter - expected)}, "
+                    f"unexpected_in_checkpoint={sorted(expected - current_adapter)}"
+                )
+            saved_trainable = set(checkpoint["trainable_model_keys"])
+            current_trainable = {
+                name for name, parameter in self.model.named_parameters() if parameter.requires_grad
+            }
+            if saved_trainable != current_trainable:
+                raise RuntimeError(
+                    "LoRA checkpoint/current trainable mismatch: "
+                    f"missing_in_checkpoint={sorted(current_trainable - saved_trainable)}, "
+                    f"unexpected_in_checkpoint={sorted(saved_trainable - current_trainable)}"
+                )
+            incompatible = self.model.load_state_dict(state, strict=False)
+            missing, unexpected = list(incompatible.missing_keys), list(incompatible.unexpected_keys)
+            allowed_missing = set(self.model.state_dict()) - expected
+            if set(missing) != allowed_missing or unexpected:
+                raise RuntimeError(
+                    f"LoRA delta reload mismatch missing={missing}, unexpected={unexpected}"
                 )
         else:
             raise ValueError(f"Unknown model_state_format {state_format}")
@@ -794,12 +1022,17 @@ class FullDuplexTrainer:
             world_prior_multiplier = float(
                 self.config.get("world_prior_learning_rate_multiplier", 1.0)
             )
+            lora_multiplier = float(
+                self.config.get("lora_learning_rate_multiplier", 1.0)
+            )
             for parameter_group in self.optimizer.param_groups:
                 group_lr = resumed_lr
                 if parameter_group.get("group_name") == "world_head":
                     group_lr *= world_head_multiplier
                 elif parameter_group.get("group_name") == "world_prior":
                     group_lr *= world_prior_multiplier
+                elif parameter_group.get("group_name") == "lora":
+                    group_lr *= lora_multiplier
                 parameter_group["lr"] = group_lr
                 parameter_group["initial_lr"] = group_lr
             self.lr_scheduler.base_lrs = [
@@ -819,6 +1052,8 @@ class FullDuplexTrainer:
         self.best_loss = checkpoint["best_loss"]
         self.best_step = checkpoint["best_step"]
         self.loss_history = checkpoint["loss_history"]
+        self.warm_start_report = checkpoint.get("warm_start")
+        self._write_run_manifest()
         random.setstate(checkpoint["python_rng_state"])
         np.random.set_state(checkpoint["numpy_rng_state"])
         torch.set_rng_state(checkpoint["pytorch_rng_state"])
@@ -888,10 +1123,11 @@ class FullDuplexTrainer:
         fresh = fresh.to(self.device)
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
         state = checkpoint["model"]
-        if checkpoint["model_state_format"] == "full":
+        state_format = checkpoint["model_state_format"]
+        if state_format == "full":
             incompatible = fresh.load_state_dict(state, strict=True)
             missing, unexpected = list(incompatible.missing_keys), list(incompatible.unexpected_keys)
-        else:
+        elif state_format == "trainable_delta_over_strict_base":
             expected = set(checkpoint["model_keys"])
             current_trainable = {
                 name for name, parameter in fresh.named_parameters() if parameter.requires_grad
@@ -902,6 +1138,21 @@ class FullDuplexTrainer:
             missing, unexpected = list(incompatible.missing_keys), list(incompatible.unexpected_keys)
             if set(missing) != set(fresh.state_dict()) - expected or unexpected:
                 raise RuntimeError("Fresh delta reload failed strict expected-key validation")
+        elif state_format == "full_duplex_lora_delta_over_strict_base":
+            expected = set(checkpoint["model_keys"])
+            if expected != set(fresh.adapter_state_names()):
+                raise RuntimeError("Fresh LoRA reload adapter-state manifest mismatch")
+            current_trainable = {
+                name for name, parameter in fresh.named_parameters() if parameter.requires_grad
+            }
+            if current_trainable != set(checkpoint["trainable_model_keys"]):
+                raise RuntimeError("Fresh LoRA reload trainable-module manifest mismatch")
+            incompatible = fresh.load_state_dict(state, strict=False)
+            missing, unexpected = list(incompatible.missing_keys), list(incompatible.unexpected_keys)
+            if set(missing) != set(fresh.state_dict()) - expected or unexpected:
+                raise RuntimeError("Fresh LoRA reload failed strict expected-key validation")
+        else:
+            raise ValueError(f"Unknown model_state_format {state_format}")
         print(
             f"[reload test] missing({len(missing)})={missing} unexpected({len(unexpected)})={unexpected}"
         )
@@ -947,8 +1198,13 @@ class FullDuplexTrainer:
         max_steps: int,
         resume: str | Path | None = None,
         *,
+        warm_start: str | Path | None = None,
         override_resume_learning_rate: bool = False,
     ) -> dict[str, Any]:
+        if resume is not None and warm_start is not None:
+            raise ValueError("resume and warm_start are mutually exclusive")
+        if warm_start is not None:
+            self.load_warm_start(warm_start)
         if resume is not None:
             self.load_checkpoint(
                 resume,
