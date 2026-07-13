@@ -31,6 +31,12 @@ is preserved in `cache/smallest_000000/metadata.json` instead of being hidden.
 - `training.py`: fixed-noise 10-step denoising, autoregressive rollout without
   detach, cross-turn BPTT probe, losses, finite/gradient checks, checkpointing,
   resume, and exact reload test.
+- `teacher_forcing_training.py`, `train_teacher_forcing.py`: strict
+  previous-ground-truth → next-ground-truth world transitions. Turn 0 uses the
+  null/zero state; every later world input is cached GT state `t`. Each turn
+  backpropagates `loss / num_turns` immediately and frees its graph, while one
+  optimizer update remains the mean over all transitions. This path never uses
+  LoRA and records `cross_turn_bptt: false` explicitly.
 - `control_training.py`: foreground synchronous worker controller with a raw
   log and atomically updated status/summary files. Console progress is compact;
   the raw log retains every per-turn metric. Interrupts terminate the worker.
@@ -81,6 +87,54 @@ to the run manifest and checkpoint. Ordinary `--resume` deliberately rejects
 changes to denoising steps, blocks, or stride; an architecture change requires
 an explicit warm-start/migration rather than silently treating it as the same
 training run.
+
+## Previous-GT → next-GT teacher-forcing experiment
+
+This is the separate training path selected after abandoning the LoRA
+experiment. Its world-state mapping is exact:
+
+```text
+turn 0: zero/null state -> GT state[1]
+turn t>0: GT state[t]   -> GT state[t+1]
+L_state = MSE(predicted final latent, GT state[t+1])
+```
+
+Only world-state input is teacher-forced by default. Camera input retains the
+original predicted-camera recurrence; `--teacher-force-camera` is an explicit
+separate ablation. Historical prediction values remain visible to the stream
+Transformer but are detached. Every transition performs its own backward, so
+the code never retains a 19-transition autograd graph.
+
+The completed real-data run used every checkpoint Transformer layer, stride 8,
+19 transitions and 10 differentiable denoising steps. It checkpoints only the
+leading 10 of 30 Transformer blocks to trade HBM for speed without changing
+the forward function:
+
+```bash
+$PY -u -m full_duplex.train_teacher_forcing \
+  --warm-start full_duplex/outputs/smallest_000000/rollout_19turn_stride8_1block_worldprior_final200/checkpoints/best.pt \
+  --run-name teacher_forced_b30_s8_ckpt10 --max-steps 100 \
+  --num-turns 19 --num-denoising-steps 10 \
+  --blocks 30 --spatial-token-stride 8 --attention-pad-to-turns 19 \
+  --checkpoint-blocks 10
+```
+
+Resume from the best saved optimizer/model/RNG state (not a potentially older
+milestone symlink) with:
+
+```bash
+$PY -u -m full_duplex.train_teacher_forcing \
+  --resume RUN/checkpoints/best.pt --run-name teacher_forced_b30_s8_ckpt10 \
+  --max-steps 100
+```
+
+`--blocks` is executed Transformer depth; `--spatial-token-stride` is spatial
+patch-grid sampling and is not a frame/action stride; `--max-steps` is the
+target optimizer step; `--num-denoising-steps` is the Flow/Euler integration
+count inside each transition. Exact implementation, memory probes, 100-step
+metrics and limitations are in `TEACHER_FORCING_REPORT.md`.
+The post-training VAE video and an old/new metric comparison are documented in
+`NEW_VS_OLD_TRAINING_REPORT.md`.
 
 ## Last-block LoRA
 

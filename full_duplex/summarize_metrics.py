@@ -27,6 +27,10 @@ AGGREGATE_FIELDS = (
     "peak_gpu_memory_gib",
     "elapsed_seconds",
     "early_turn_future_gradient_norm",
+    "teacher_forced_world_inputs",
+    "teacher_forced_camera_inputs",
+    "cross_turn_bptt",
+    "sequential_turn_backward",
 )
 
 
@@ -60,6 +64,8 @@ def main() -> None:
     per_turn_fields = (
         "step",
         "turn",
+        "input_state_index",
+        "target_state_index",
         "flow_loss",
         "state_loss",
         "camera_loss",
@@ -72,7 +78,8 @@ def main() -> None:
         writer.writeheader()
         for row in rows:
             for turn in row["per_turn"]:
-                writer.writerow({"step": row["step"], **turn})
+                values = {"step": row["step"], **turn}
+                writer.writerow({field: values.get(field) for field in per_turn_fields})
 
     curve_path = output_dir / "loss_curve.png"
     figure, left_axis = plt.subplots(figsize=(9, 5), dpi=160)
@@ -123,6 +130,10 @@ def main() -> None:
         "first_early_turn_future_gradient_norm": rows[0].get(
             "early_turn_future_gradient_norm"
         ),
+        "teacher_forced_world_inputs": rows[-1].get("teacher_forced_world_inputs"),
+        "teacher_forced_camera_inputs": rows[-1].get("teacher_forced_camera_inputs"),
+        "cross_turn_bptt": rows[-1].get("cross_turn_bptt"),
+        "sequential_turn_backward": rows[-1].get("sequential_turn_backward"),
         "aggregate_csv": str(aggregate_csv.resolve()),
         "per_turn_csv": str(per_turn_csv.resolve()),
         "loss_curve": str(curve_path.resolve()),

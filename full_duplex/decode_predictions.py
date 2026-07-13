@@ -162,10 +162,23 @@ def main() -> None:
             ),
         }
 
+    teacher_forced_world_inputs = bool(
+        prediction_manifest
+        and prediction_manifest.get("teacher_forced_world_inputs", False)
+    )
+    teacher_forced_camera_inputs = bool(
+        prediction_manifest
+        and prediction_manifest.get("teacher_forced_camera_inputs", False)
+    )
     manifest = {
         "prediction_payload": str(predictions_path),
         "prediction_manifest": prediction_manifest,
-        "ground_truth_used_for_prediction": False,
+        "ground_truth_used_for_prediction": (
+            teacher_forced_world_inputs or teacher_forced_camera_inputs
+        ),
+        "ground_truth_world_inputs_used_for_prediction": teacher_forced_world_inputs,
+        "ground_truth_camera_inputs_used_for_prediction": teacher_forced_camera_inputs,
+        "ground_truth_current_output_visible_to_model": False,
         "ground_truth_decoded": False,
         "vae_checkpoint": file_identity(vae_path, hash_contents=True),
         "latent_normalization": {
