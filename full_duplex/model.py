@@ -318,12 +318,30 @@ class FullDuplexWanModel(nn.Module):
         self,
         train_backbone: bool,
         train_base_world_head: bool = False,
+        train_last_backbone_blocks: int = 0,
     ) -> dict[str, int]:
         lora_enabled = bool(self.config.get("lora_enabled", False))
         if lora_enabled and train_backbone:
             raise ValueError("LoRA mode freezes checkpoint weights; train_backbone must be false")
+        train_last_backbone_blocks = int(train_last_backbone_blocks)
+        if not 0 <= train_last_backbone_blocks <= self.num_backbone_blocks:
+            raise ValueError(
+                "train_last_backbone_blocks must fit the executed backbone depth"
+            )
+        if train_backbone and train_last_backbone_blocks:
+            raise ValueError(
+                "train_backbone and train_last_backbone_blocks are mutually exclusive"
+            )
+        if lora_enabled and train_last_backbone_blocks:
+            raise ValueError("Selective block unfreezing and LoRA are mutually exclusive")
         self.requires_grad_(False)
         self.backbone.requires_grad_(train_backbone)
+        first_trainable_block = self.num_backbone_blocks - train_last_backbone_blocks
+        self.trainable_backbone_block_indices = list(
+            range(first_trainable_block, self.num_backbone_blocks)
+        )
+        for block_index in self.trainable_backbone_block_indices:
+            self.backbone.blocks[block_index].requires_grad_(True)
         if train_base_world_head:
             self.backbone.head.requires_grad_(True)
         train_task_modules = not lora_enabled or bool(
@@ -343,11 +361,18 @@ class FullDuplexWanModel(nn.Module):
             for name, parameter in self.named_parameters()
             if parameter.requires_grad and name in lora_names
         )
+        selective_blocks = sum(
+            parameter.numel()
+            for name, parameter in self.named_parameters()
+            if parameter.requires_grad and name.startswith("backbone.blocks.")
+            and name not in lora_names
+        )
         return {
             "total": total,
             "trainable": trainable,
             "frozen": total - trainable,
             "lora_trainable": lora,
+            "selective_backbone_blocks_trainable": selective_blocks,
         }
 
     def _patchify(self, latent: torch.Tensor) -> tuple[torch.Tensor, PatchGrid]:

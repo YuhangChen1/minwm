@@ -67,8 +67,19 @@ spatial patch density; it does not change RGB frames, actions, or temporal turns
     parser.add_argument("--world-residual-head", action="store_true")
     parser.add_argument("--world-time-space-prior", action="store_true")
     parser.add_argument("--train-base-world-head", action="store_true")
+    parser.add_argument("--train-last-backbone-blocks", type=int)
+    parser.add_argument("--backbone-learning-rate-multiplier", type=float)
+    parser.add_argument("--compact-checkpoint", action="store_true")
     parser.add_argument("--freeze-backbone", action="store_true")
     parser.add_argument("--disable-gradient-checkpointing", action="store_true")
+    parser.add_argument(
+        "--checkpoint-blocks",
+        type=int,
+        help=(
+            "Checkpoint only the leading N executed Transformer blocks. N=0 stores "
+            "all activations; intermediate values provide partial activation checkpointing"
+        ),
+    )
     args = parser.parse_args()
     config = load_config(args.config)
     overrides = {
@@ -81,6 +92,7 @@ spatial patch density; it does not change RGB frames, actions, or temporal turns
         "world_head_learning_rate_multiplier": args.world_head_learning_rate_multiplier,
         "world_prior_learning_rate_multiplier": args.world_prior_learning_rate_multiplier,
         "max_grad_norm": args.max_grad_norm,
+        "backbone_learning_rate_multiplier": args.backbone_learning_rate_multiplier,
     }
     for key, value in overrides.items():
         if value is not None:
@@ -91,12 +103,26 @@ spatial patch density; it does not change RGB frames, actions, or temporal turns
         config["train_backbone"] = False
     if args.disable_gradient_checkpointing:
         config["gradient_checkpointing"] = False
+        config["gradient_checkpointing_blocks"] = 0
+    if args.checkpoint_blocks is not None:
+        if args.checkpoint_blocks < 0:
+            raise ValueError("--checkpoint-blocks must be non-negative")
+        if args.disable_gradient_checkpointing:
+            raise ValueError(
+                "--checkpoint-blocks and --disable-gradient-checkpointing are mutually exclusive"
+            )
+        config["gradient_checkpointing"] = args.checkpoint_blocks > 0
+        config["gradient_checkpointing_blocks"] = args.checkpoint_blocks
     if args.world_residual_head:
         config["world_residual_head"] = True
     if args.world_time_space_prior:
         config["world_time_space_prior"] = True
     if args.train_base_world_head:
         config["train_base_world_head"] = True
+    if args.train_last_backbone_blocks is not None:
+        config["train_last_backbone_blocks"] = args.train_last_backbone_blocks
+    if args.compact_checkpoint:
+        config["compact_checkpoint"] = True
     if args.max_steps is not None:
         # Persist the effective CLI value into manifests and checkpoints. This
         # is the target global optimizer step (not an extra-resume count and
@@ -110,12 +136,26 @@ spatial patch density; it does not change RGB frames, actions, or temporal turns
     ):
         if int(config[key]) < 1:
             raise ValueError(f"{key} must be positive, got {config[key]}")
+    checkpoint_blocks = int(config.get("gradient_checkpointing_blocks", -1))
+    if checkpoint_blocks < 0:
+        checkpoint_blocks = (
+            int(config["num_backbone_blocks"])
+            if config["gradient_checkpointing"]
+            else 0
+        )
+    if not 0 <= checkpoint_blocks <= int(config["num_backbone_blocks"]):
+        raise ValueError("checkpointed block count must fit --blocks")
+    if not 0 <= int(config.get("train_last_backbone_blocks", 0)) <= int(
+        config["num_backbone_blocks"]
+    ):
+        raise ValueError("train_last_backbone_blocks must fit --blocks")
     refresh_training_config_hash(config)
     controls = {
         "target_global_optimizer_step": int(config["max_steps"]),
         "denoising_steps_per_micro_turn": int(config["num_denoising_steps"]),
         "backbone_blocks_per_model_call": int(config["num_backbone_blocks"]),
         "spatial_patch_grid_stride": int(config["spatial_token_stride"]),
+        "gradient_checkpointing_blocks": checkpoint_blocks,
     }
     print(f"[training controls] {json.dumps(controls, sort_keys=True)}", flush=True)
     trainer = FullDuplexTrainer(config, args.mode, args.run_name)

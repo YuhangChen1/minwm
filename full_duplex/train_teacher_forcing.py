@@ -7,7 +7,7 @@ from typing import Any
 
 import torch
 
-from full_duplex.config import refresh_training_config_hash
+from full_duplex.config import load_config, refresh_training_config_hash
 from full_duplex.teacher_forcing_training import (
     TEACHER_FORCED_REGIME,
     TeacherForcedTransitionTrainer,
@@ -53,6 +53,15 @@ turns while no 19-turn autograd graph is retained. This path never enables LoRA.
 """,
     )
     source_group = parser.add_mutually_exclusive_group(required=True)
+    source_group.add_argument(
+        "--config",
+        type=Path,
+        help=(
+            "Start from deterministic task-module initialization over the strict base "
+            "checkpoint. This is the correct source for matched rollout/teacher-forced "
+            "ablations; no learned task delta is inherited"
+        ),
+    )
     source_group.add_argument(
         "--warm-start",
         type=Path,
@@ -130,6 +139,31 @@ turns while no 19-turn autograd graph is retained. This path never enables LoRA.
         ),
     )
     parser.add_argument(
+        "--world-residual-head",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable the zero-initialized hidden-distribution residual world head",
+    )
+    parser.add_argument(
+        "--world-time-space-prior",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable the zero-initialized per-turn/per-patch world prior",
+    )
+    parser.add_argument(
+        "--train-base-world-head",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Also train the pretrained Wan output head",
+    )
+    parser.add_argument(
+        "--train-last-backbone-blocks",
+        type=int,
+        help="Selectively unfreeze the last N executed Transformer blocks",
+    )
+    parser.add_argument("--backbone-learning-rate-multiplier", type=float)
+    parser.add_argument("--compact-checkpoint", action="store_true")
+    parser.add_argument(
         "--override-resume-learning-rate",
         action="store_true",
         help="Explicitly replace restored optimizer LR while preserving moments",
@@ -144,26 +178,35 @@ turns while no 19-turn autograd graph is retained. This path never enables LoRA.
             "Use either --checkpoint-blocks or --[no-]gradient-checkpointing, not both"
         )
 
-    source_path = (args.warm_start or args.resume).resolve()
-    checkpoint = _source_checkpoint(source_path)
-    config = dict(checkpoint["training_config"])
-    mode = checkpoint["mode"]
-    source_format = checkpoint["model_state_format"]
-    del checkpoint
+    source_path = (args.config or args.warm_start or args.resume).resolve()
+    if args.config is not None:
+        config = load_config(source_path)
+        mode = "rollout"
+        source_format = None
+    else:
+        checkpoint = _source_checkpoint(source_path)
+        config = dict(checkpoint["training_config"])
+        mode = checkpoint["mode"]
+        source_format = checkpoint["model_state_format"]
+        del checkpoint
     if mode != "rollout":
         raise ValueError(f"Teacher-forced video transitions require rollout mode, got {mode}")
 
     if args.output_dir is not None:
         config["output_dir"] = str(args.output_dir.resolve())
     config["max_steps"] = int(args.max_steps)
+    if args.compact_checkpoint:
+        config["compact_checkpoint"] = True
     if args.num_turns is not None:
         config["rollout_num_turns"] = int(args.num_turns)
 
-    if args.warm_start is not None:
+    if args.config is not None or args.warm_start is not None:
         if source_format != "trainable_delta_over_strict_base":
-            raise ValueError(
-                "--warm-start requires a non-LoRA task delta, got " + source_format
-            )
+            if args.warm_start is not None:
+                raise ValueError(
+                    "--warm-start requires a non-LoRA task delta, got "
+                    + str(source_format)
+                )
         # Only the rollout input/gradient regime changes. Keep the learned task
         # modules and loss/LR settings from the source checkpoint, execute more
         # frozen pretrained blocks as memory permits, and explicitly disable LoRA.
@@ -173,9 +216,15 @@ turns while no 19-turn autograd graph is retained. This path never enables LoRA.
         config["sequential_turn_backward"] = True
         config["teacher_forcing_ratio"] = 1.0
         config["detach_between_turns"] = True
-        config["num_backbone_blocks"] = int(args.blocks if args.blocks is not None else 4)
+        config["num_backbone_blocks"] = int(
+            args.blocks
+            if args.blocks is not None
+            else (config["num_backbone_blocks"] if args.config is not None else 4)
+        )
         config["spatial_token_stride"] = int(
-            args.spatial_token_stride if args.spatial_token_stride is not None else 8
+            args.spatial_token_stride
+            if args.spatial_token_stride is not None
+            else (config["spatial_token_stride"] if args.config is not None else 8)
         )
         config["num_denoising_steps"] = int(
             args.num_denoising_steps if args.num_denoising_steps is not None else 10
@@ -186,7 +235,18 @@ turns while no 19-turn autograd graph is retained. This path never enables LoRA.
             else config["num_micro_turns"]
         )
         config["train_backbone"] = False
-        config["train_base_world_head"] = False
+        if args.train_base_world_head is not None:
+            config["train_base_world_head"] = bool(args.train_base_world_head)
+        elif args.warm_start is not None:
+            config["train_base_world_head"] = False
+        if args.train_last_backbone_blocks is not None:
+            config["train_last_backbone_blocks"] = int(
+                args.train_last_backbone_blocks
+            )
+        if args.world_residual_head is not None:
+            config["world_residual_head"] = bool(args.world_residual_head)
+        if args.world_time_space_prior is not None:
+            config["world_time_space_prior"] = bool(args.world_time_space_prior)
         config["lora_enabled"] = False
         config["lora_train_task_modules"] = False
         config["lora_learning_rate_multiplier"] = 1.0
@@ -222,6 +282,10 @@ turns while no 19-turn autograd graph is retained. This path never enables LoRA.
                 args.world_prior_learning_rate_multiplier
             ),
             "max_grad_norm": args.max_grad_norm,
+            "train_last_backbone_blocks": args.train_last_backbone_blocks,
+            "backbone_learning_rate_multiplier": (
+                args.backbone_learning_rate_multiplier
+            ),
             "teacher_force_camera": args.teacher_force_camera,
             "gradient_checkpointing": args.gradient_checkpointing,
             "gradient_checkpointing_blocks": args.checkpoint_blocks,
@@ -241,6 +305,7 @@ turns while no 19-turn autograd graph is retained. This path never enables LoRA.
         "world_head_learning_rate_multiplier": args.world_head_learning_rate_multiplier,
         "world_prior_learning_rate_multiplier": args.world_prior_learning_rate_multiplier,
         "max_grad_norm": args.max_grad_norm,
+        "backbone_learning_rate_multiplier": args.backbone_learning_rate_multiplier,
     }
     for key, value in common_overrides.items():
         if value is not None:
@@ -257,6 +322,10 @@ turns while no 19-turn autograd graph is retained. This path never enables LoRA.
         )
     if not 0 <= checkpoint_blocks <= int(config["num_backbone_blocks"]):
         raise ValueError("checkpointed block count must fit --blocks")
+    if not 0 <= int(config.get("train_last_backbone_blocks", 0)) <= int(
+        config["num_backbone_blocks"]
+    ):
+        raise ValueError("train_last_backbone_blocks must fit --blocks")
     if not config["gradient_checkpointing"] and checkpoint_blocks != 0:
         raise ValueError("Disabled gradient checkpointing requires zero checkpointed blocks")
     for key in (
@@ -274,7 +343,11 @@ turns while no 19-turn autograd graph is retained. This path never enables LoRA.
     refresh_training_config_hash(config)
     controls = {
         "source": str(source_path),
-        "source_mode": "warm_start" if args.warm_start else "resume",
+        "source_mode": (
+            "fresh_config"
+            if args.config
+            else ("warm_start" if args.warm_start else "resume")
+        ),
         "training_regime": config["training_regime"],
         "target_global_optimizer_step": config["max_steps"],
         "num_transitions_per_optimizer_step": num_turns,

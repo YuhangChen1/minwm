@@ -86,7 +86,15 @@ For the cached 60x104 latent and 2x2 patches, stride 8/4/2/1 selects
     parser.add_argument("--world-residual-head", action="store_true")
     parser.add_argument("--world-time-space-prior", action="store_true")
     parser.add_argument("--train-base-world-head", action="store_true")
+    parser.add_argument("--train-last-backbone-blocks", type=int)
+    parser.add_argument("--backbone-learning-rate-multiplier", type=float)
+    parser.add_argument("--compact-checkpoint", action="store_true")
     parser.add_argument("--freeze-backbone", action="store_true")
+    parser.add_argument(
+        "--checkpoint-blocks",
+        type=int,
+        help="Checkpoint only the leading N executed blocks (partial activation checkpointing)",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -127,6 +135,12 @@ For the cached 60x104 latent and 2x2 patches, stride 8/4/2/1 selects
             args.world_prior_learning_rate_multiplier,
         ),
         ("--max-grad-norm", args.max_grad_norm),
+        ("--checkpoint-blocks", args.checkpoint_blocks),
+        ("--train-last-backbone-blocks", args.train_last_backbone_blocks),
+        (
+            "--backbone-learning-rate-multiplier",
+            args.backbone_learning_rate_multiplier,
+        ),
     )
     for flag, value in optional_values:
         if value is not None:
@@ -139,6 +153,8 @@ For the cached 60x104 latent and 2x2 patches, stride 8/4/2/1 selects
         command.append("--world-time-space-prior")
     if args.train_base_world_head:
         command.append("--train-base-world-head")
+    if args.compact_checkpoint:
+        command.append("--compact-checkpoint")
     if args.override_resume_learning_rate:
         command.append("--override-resume-learning-rate")
 

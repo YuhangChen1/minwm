@@ -68,12 +68,37 @@ def refresh_training_config_hash(config: dict[str, Any]) -> str:
     return digest
 
 
+def _load_config_mapping(path: Path, chain: tuple[Path, ...] = ()) -> dict[str, Any]:
+    """Load a YAML mapping with an optional relative ``extends`` parent.
+
+    Experiment configs should record only intentional deltas from the audited
+    baseline.  Resolving paths and validating the merged mapping happens once
+    in :func:`load_config`, so inherited relative paths keep the same project
+    root semantics as a standalone config.
+    """
+
+    path = path.resolve()
+    if path in chain:
+        cycle = " -> ".join(str(item) for item in (*chain, path))
+        raise ValueError(f"Config inheritance cycle: {cycle}")
+    with path.open("r", encoding="utf-8") as handle:
+        mapping = yaml.safe_load(handle)
+    if not isinstance(mapping, dict):
+        raise TypeError(f"Expected mapping in {path}, got {type(mapping).__name__}")
+    parent = mapping.pop("extends", None)
+    if parent is None:
+        return mapping
+    parent_path = Path(parent)
+    if not parent_path.is_absolute():
+        parent_path = path.parent / parent_path
+    merged = _load_config_mapping(parent_path, (*chain, path))
+    merged.update(mapping)
+    return merged
+
+
 def load_config(path: str | Path) -> dict[str, Any]:
     path = Path(path).resolve()
-    with path.open("r", encoding="utf-8") as handle:
-        config = yaml.safe_load(handle)
-    if not isinstance(config, dict):
-        raise TypeError(f"Expected mapping in {path}, got {type(config).__name__}")
+    config = _load_config_mapping(path)
     missing = sorted(REQUIRED_TOP_LEVEL - set(config))
     if missing:
         raise KeyError(f"Missing required config keys: {missing}")

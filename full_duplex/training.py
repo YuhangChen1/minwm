@@ -121,6 +121,7 @@ class FullDuplexTrainer:
         self.parameter_counts = model.configure_trainable_parameters(
             config["train_backbone"],
             config.get("train_base_world_head", False),
+            config.get("train_last_backbone_blocks", 0),
         )
         # Keep master parameters fp32; autocast performs Wan compute in bf16.
         self.model = model.to(self.device)
@@ -152,12 +153,20 @@ class FullDuplexTrainer:
             for name, parameter in named_trainable
             if name.endswith(".lora_A") or name.endswith(".lora_B")
         ]
+        lora_parameter_ids = {id(parameter) for parameter in lora_parameters}
+        backbone_block_parameters = [
+            parameter
+            for name, parameter in named_trainable
+            if name.startswith("backbone.blocks.")
+            and id(parameter) not in lora_parameter_ids
+        ]
         other_parameters = [
             parameter
             for name, parameter in named_trainable
             if not name.startswith(world_head_prefixes)
             and not name.startswith(world_prior_prefix)
             and not (name.endswith(".lora_A") or name.endswith(".lora_B"))
+            and not name.startswith("backbone.blocks.")
         ]
         world_head_multiplier = float(
             config.get("world_head_learning_rate_multiplier", 1.0)
@@ -166,10 +175,14 @@ class FullDuplexTrainer:
             config.get("world_prior_learning_rate_multiplier", 1.0)
         )
         lora_multiplier = float(config.get("lora_learning_rate_multiplier", 1.0))
+        backbone_multiplier = float(
+            config.get("backbone_learning_rate_multiplier", 1.0)
+        )
         if (
             world_head_multiplier <= 0
             or world_prior_multiplier <= 0
             or lora_multiplier <= 0
+            or backbone_multiplier <= 0
         ):
             raise ValueError("World and LoRA LR multipliers must be positive")
         if world_head_multiplier != 1.0 and not world_head_parameters:
@@ -182,6 +195,10 @@ class FullDuplexTrainer:
             )
         if lora_multiplier != 1.0 and not lora_parameters:
             raise ValueError("A LoRA LR multiplier requires lora_enabled: true")
+        if backbone_multiplier != 1.0 and not backbone_block_parameters:
+            raise ValueError(
+                "A backbone LR multiplier requires train_last_backbone_blocks > 0"
+            )
         default_parameters = list(other_parameters)
         if world_head_multiplier == 1.0:
             default_parameters.extend(world_head_parameters)
@@ -189,6 +206,8 @@ class FullDuplexTrainer:
             default_parameters.extend(world_prior_parameters)
         if lora_multiplier == 1.0:
             default_parameters.extend(lora_parameters)
+        if backbone_multiplier == 1.0:
+            default_parameters.extend(backbone_block_parameters)
         optimizer_groups = []
         if default_parameters:
             optimizer_groups.append(
@@ -220,6 +239,14 @@ class FullDuplexTrainer:
                     "params": lora_parameters,
                     "lr": config["learning_rate"] * lora_multiplier,
                     "group_name": "lora",
+                }
+            )
+        if backbone_multiplier != 1.0:
+            optimizer_groups.append(
+                {
+                    "params": backbone_block_parameters,
+                    "lr": config["learning_rate"] * backbone_multiplier,
+                    "group_name": "backbone_blocks",
                 }
             )
         self.optimizer = torch.optim.AdamW(
@@ -302,6 +329,7 @@ class FullDuplexTrainer:
                 else None
             ),
             "gradient_checkpointing_blocks": self.model.num_gradient_checkpoint_blocks,
+            "trainable_backbone_block_indices": self.model.trainable_backbone_block_indices,
             "lora": self.model.lora_report,
             "lora_trainable_parameter_names": self.model.lora_parameter_names(),
             "lora_train_task_modules": bool(
@@ -475,7 +503,12 @@ class FullDuplexTrainer:
         future_gradient_norm: float | None = None
         early_turn_prediction_probe: torch.Tensor | None = None
         early_turn_local_gradient: torch.Tensor | None = None
-        if self.mode == "rollout" and self.global_step == 0 and num_turns > 1:
+        if (
+            torch.is_grad_enabled()
+            and self.mode == "rollout"
+            and self.global_step == 0
+            and num_turns > 1
+        ):
             # Retain one non-leaf gradient and recover the future-turn
             # contribution after the ordinary total-loss backward. This avoids
             # traversing the complete 19-turn graph twice. The only direct
@@ -600,6 +633,14 @@ class FullDuplexTrainer:
                 ),
                 self.optimizer.param_groups[0]["lr"],
             ),
+            "backbone_learning_rate": next(
+                (
+                    group["lr"]
+                    for group in self.optimizer.param_groups
+                    if group.get("group_name") == "backbone_blocks"
+                ),
+                self.optimizer.param_groups[0]["lr"],
+            ),
             "peak_gpu_memory_gib": torch.cuda.max_memory_allocated(self.device) / 2**30,
             "elapsed_seconds": elapsed,
             "latent_prediction_mse": float(output.state_loss.detach()),
@@ -638,6 +679,7 @@ class FullDuplexTrainer:
 
     def checkpoint_payload(self) -> dict[str, Any]:
         state_format, model_state, model_keys = self._model_state_for_checkpoint()
+        compact = bool(self.config.get("compact_checkpoint", False))
         return {
             "model": model_state,
             "model_state_format": state_format,
@@ -645,8 +687,8 @@ class FullDuplexTrainer:
             "trainable_model_keys": sorted(
                 name for name, parameter in self.model.named_parameters() if parameter.requires_grad
             ),
-            "optimizer": self.optimizer.state_dict(),
-            "lr_scheduler": self.lr_scheduler.state_dict(),
+            "optimizer": None if compact else self.optimizer.state_dict(),
+            "lr_scheduler": None if compact else self.lr_scheduler.state_dict(),
             "global_step": self.global_step,
             "epoch": self.epoch,
             "best_loss": self.best_loss,
@@ -665,6 +707,9 @@ class FullDuplexTrainer:
                 "world_residual_head": self.config.get("world_residual_head", False),
                 "world_time_space_prior": self.config.get("world_time_space_prior", False),
                 "train_base_world_head": self.config.get("train_base_world_head", False),
+                "train_last_backbone_blocks": self.config.get(
+                    "train_last_backbone_blocks", 0
+                ),
                 "lora_enabled": self.config.get("lora_enabled", False),
                 "lora_last_blocks": self.config.get("lora_last_blocks"),
                 "lora_rank": self.config.get("lora_rank"),
@@ -697,10 +742,22 @@ class FullDuplexTrainer:
             "mode": self.mode,
             "run_name": self.run_name,
             "warm_start": self.warm_start_report,
+            "compact_checkpoint": compact,
         }
 
     def save_checkpoint(self, metrics: dict[str, Any], *, named: bool, best: bool) -> Path | None:
         payload = self.checkpoint_payload()
+        if self.config.get("compact_checkpoint", False):
+            if not (named or best):
+                return None
+            best_path = self.checkpoint_dir / "best.pt"
+            _atomic_torch_save(payload, best_path)
+            _atomic_symlink(best_path, self.checkpoint_dir / "latest.pt")
+            print(
+                f"[checkpoint] updated compact model-only best/latest {best_path}",
+                flush=True,
+            )
+            return best_path
         result: Path | None = None
         if named:
             name = (
@@ -844,6 +901,7 @@ class FullDuplexTrainer:
             "attention_pad_to_turns",
             "train_backbone",
             "train_base_world_head",
+            "train_last_backbone_blocks",
             "world_residual_head",
             "world_time_space_prior",
             "lora_enabled",
@@ -857,6 +915,7 @@ class FullDuplexTrainer:
             "learning_rate",
             "world_head_learning_rate_multiplier",
             "world_prior_learning_rate_multiplier",
+            "backbone_learning_rate_multiplier",
             "lora_learning_rate_multiplier",
             "weight_decay",
             "lambda_flow",
@@ -879,8 +938,10 @@ class FullDuplexTrainer:
             "world_residual_head": False,
             "world_time_space_prior": False,
             "train_base_world_head": False,
+            "train_last_backbone_blocks": 0,
             "world_head_learning_rate_multiplier": 1.0,
             "world_prior_learning_rate_multiplier": 1.0,
+            "backbone_learning_rate_multiplier": 1.0,
             "lora_enabled": False,
             "lora_last_blocks": 4,
             "lora_rank": 8,
@@ -909,6 +970,7 @@ class FullDuplexTrainer:
             "learning_rate",
             "world_head_learning_rate_multiplier",
             "world_prior_learning_rate_multiplier",
+            "backbone_learning_rate_multiplier",
             "lora_learning_rate_multiplier",
         ):
             mismatch = mismatches.pop(key, None)
@@ -981,6 +1043,11 @@ class FullDuplexTrainer:
             flush=True,
         )
         saved_optimizer = checkpoint["optimizer"]
+        if saved_optimizer is None or checkpoint["lr_scheduler"] is None:
+            raise RuntimeError(
+                "Compact model-only checkpoints support inference/reload validation but "
+                "cannot resume optimizer training"
+            )
         optimizer_group_migration = len(saved_optimizer["param_groups"]) != len(
             self.optimizer.param_groups
         )
@@ -1033,6 +1100,10 @@ class FullDuplexTrainer:
                     group_lr *= world_prior_multiplier
                 elif parameter_group.get("group_name") == "lora":
                     group_lr *= lora_multiplier
+                elif parameter_group.get("group_name") == "backbone_blocks":
+                    group_lr *= float(
+                        self.config.get("backbone_learning_rate_multiplier", 1.0)
+                    )
                 parameter_group["lr"] = group_lr
                 parameter_group["initial_lr"] = group_lr
             self.lr_scheduler.base_lrs = [
@@ -1119,6 +1190,7 @@ class FullDuplexTrainer:
         fresh.configure_trainable_parameters(
             self.config["train_backbone"],
             self.config.get("train_base_world_head", False),
+            self.config.get("train_last_backbone_blocks", 0),
         )
         fresh = fresh.to(self.device)
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)

@@ -85,6 +85,25 @@ def evaluate(predictions_path: Path, checkpoint_path: Path | None = None) -> dic
     best_turn = int(torch.argmin(state_mse))
     worst_turn = int(torch.argmax(state_mse))
     zero_baseline_mse = float(target_states.square().mean())
+    prediction_flat = states.flatten()
+    target_flat = target_states.flatten()
+    prediction_centered = prediction_flat - prediction_flat.mean()
+    target_centered = target_flat - target_flat.mean()
+    prediction_variance = prediction_centered.square().mean()
+    regression_scale = (
+        (prediction_centered * target_centered).mean() / prediction_variance
+        if float(prediction_variance) > 0.0
+        else torch.zeros(())
+    )
+    regression_bias = target_flat.mean() - regression_scale * prediction_flat.mean()
+    affine_calibrated = regression_scale * states + regression_bias
+    std_match_scale = target_flat.std() / prediction_flat.std()
+    std_matched = (states - states.mean()) * std_match_scale + target_states.mean()
+    channel_reduce_dims = (0, 2, 3)
+    predicted_channel_mean = states.mean(dim=channel_reduce_dims)
+    target_channel_mean = target_states.mean(dim=channel_reduce_dims)
+    predicted_channel_std = states.std(dim=channel_reduce_dims)
+    target_channel_std = target_states.std(dim=channel_reduce_dims)
     report: dict[str, Any] = {
         "predictions_path": str(predictions_path.resolve()),
         "checkpoint_path": str(checkpoint_path.resolve()) if checkpoint_path else None,
@@ -101,6 +120,23 @@ def evaluate(predictions_path: Path, checkpoint_path: Path | None = None) -> dic
         "predicted_latent_std": float(states.std()),
         "target_latent_mean": float(target_states.mean()),
         "target_latent_std": float(target_states.std()),
+        "predicted_to_target_std_ratio": float(states.std() / target_states.std()),
+        "target_to_predicted_std_scale": float(std_match_scale),
+        "std_matched_state_mse": float(F.mse_loss(std_matched, target_states)),
+        "optimal_affine_scale": float(regression_scale),
+        "optimal_affine_bias": float(regression_bias),
+        "optimal_affine_state_mse": float(F.mse_loss(affine_calibrated, target_states)),
+        "affine_mse_improvement_fraction": float(
+            1.0 - F.mse_loss(affine_calibrated, target_states) / state_mse.mean()
+        ),
+        "predicted_channel_mean": [float(value) for value in predicted_channel_mean],
+        "predicted_channel_std": [float(value) for value in predicted_channel_std],
+        "target_channel_mean": [float(value) for value in target_channel_mean],
+        "target_channel_std": [float(value) for value in target_channel_std],
+        "channel_std_ratio": [
+            float(value)
+            for value in predicted_channel_std / target_channel_std.clamp_min(1e-12)
+        ],
         "mean_camera_translation_l2": float(translation_l2.mean()),
         "mean_camera_rotation_degrees": float(rotation_degrees.mean()),
         "mean_camera_intrinsics_rmse": float(intrinsics_rmse.mean()),
@@ -116,6 +152,44 @@ def evaluate(predictions_path: Path, checkpoint_path: Path | None = None) -> dic
         report["checkpoint_best_loss"] = float(checkpoint["best_loss"])
         report["checkpoint_model_state_format"] = checkpoint["model_state_format"]
         config = checkpoint["training_config"]
+        report["loss_weights"] = {
+            key: float(config[key])
+            for key in ("lambda_flow", "lambda_state", "lambda_camera")
+        }
+        report["trainable_capacity"] = {
+            "train_backbone": bool(config["train_backbone"]),
+            "train_base_world_head": bool(config.get("train_base_world_head", False)),
+            "train_last_backbone_blocks": int(
+                config.get("train_last_backbone_blocks", 0)
+            ),
+            "world_residual_head": bool(config.get("world_residual_head", False)),
+            "world_time_space_prior": bool(config.get("world_time_space_prior", False)),
+            "num_backbone_blocks": int(config["num_backbone_blocks"]),
+        }
+        state_dict = checkpoint["model"]
+        groups = {
+            "world_residual": (
+                "world_residual_norm.",
+                "world_residual_head.",
+            ),
+            "world_prior": ("world_time_space_prior.",),
+            "base_world_head": ("backbone.head.",),
+        }
+        report["checkpoint_module_norms"] = {}
+        for group, prefixes in groups.items():
+            tensors = [
+                value.float().flatten()
+                for key, value in state_dict.items()
+                if key.startswith(prefixes)
+            ]
+            if tensors:
+                elements = sum(tensor.numel() for tensor in tensors)
+                square_sum = sum(float(tensor.square().sum()) for tensor in tensors)
+                report["checkpoint_module_norms"][group] = {
+                    "elements": elements,
+                    "l2": square_sum**0.5,
+                    "rms": (square_sum / elements) ** 0.5,
+                }
         stride = int(config["spatial_token_stride"])
         _, patch_height, patch_width = config["patch_size"]
         projected_height = math.ceil((target_states.shape[-2] // patch_height) / stride) * patch_height

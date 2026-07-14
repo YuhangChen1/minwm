@@ -50,6 +50,9 @@ lambda_intrinsics: 0.1
 
 save_every: 10
 log_every: 1
+# Capacity probes can store one model-only best/latest artifact to avoid
+# duplicating large selectively-unfrozen block and Adam moment tensors.
+compact_checkpoint: false
 # Target global optimizer step. On a fresh run this is the update count; when
 # resuming step 200, max_steps 250 performs 50 more updates. CLI: --max-steps.
 # This is independent of num_denoising_steps above.
@@ -80,6 +83,10 @@ max_history_turns: -1
 attention_padding_strategy: power_of_two
 attention_pad_to_turns: 0
 train_backbone: true
+# Selectively unfreeze the last N *executed* blocks while keeping the rest of
+# the 1.49B backbone frozen. This is distinct from train_backbone=true.
+train_last_backbone_blocks: 0
+backbone_learning_rate_multiplier: 1.0
 train_base_world_head: false
 world_residual_head: false
 world_time_space_prior: false

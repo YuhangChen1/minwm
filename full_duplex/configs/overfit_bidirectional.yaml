@@ -1,0 +1,8 @@
+# Isolated experiment root for the alternative Action2V checkpoint.  All
+# protocol, optimizer, loss, and data settings inherit from the audited
+# baseline; these three values are the intentional checkpoint/cache/output
+# deltas.
+extends: overfit.yaml
+base_checkpoint: ckpts/Wan21/Action2V/bidirectional/model.pt
+cache_path: full_duplex/cache/smallest_000000_bidirectional
+output_dir: full_duplex/outputs/smallest_000000_bidirectional
