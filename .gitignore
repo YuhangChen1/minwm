@@ -172,6 +172,9 @@ output*/
 preencoded/
 data/
 *mp4
+# 但保留 SmallestData 目录中的所有文件，包括 MP4
+!/dataset/SmallestData/
+!/dataset/SmallestData/**
 .safetensors
 .claude
 kb_launch.sh

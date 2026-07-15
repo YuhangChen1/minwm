@@ -1,0 +1,195 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1500" viewBox="0 0 1920 1500">
+  <defs>
+    <style>
+      .title { font-family: 'DejaVu Sans', sans-serif; font-size: 38px; font-weight: 700; fill: #10233f; }
+      .subtitle { font-family: 'DejaVu Sans', sans-serif; font-size: 21px; font-weight: 500; fill: #45617f; }
+      .section { font-family: 'DejaVu Sans', sans-serif; font-size: 22px; font-weight: 700; fill: #10233f; }
+      .h { font-family: 'DejaVu Sans', sans-serif; font-size: 17px; font-weight: 700; fill: #10233f; }
+      .t { font-family: 'DejaVu Sans', sans-serif; font-size: 15px; font-weight: 500; fill: #18324f; }
+      .s { font-family: 'DejaVu Sans', sans-serif; font-size: 13px; font-weight: 500; fill: #36536f; }
+      .mono { font-family: 'DejaVu Sans Mono', monospace; font-size: 14px; font-weight: 500; fill: #18324f; }
+      .panel { fill: #f8fbff; stroke: #adc4dc; stroke-width: 2; rx: 18; }
+      .blue { fill: #e7f2ff; stroke: #3976b9; stroke-width: 2; rx: 12; }
+      .green { fill: #e9f8ef; stroke: #3b8f62; stroke-width: 2; rx: 12; }
+      .orange { fill: #fff2df; stroke: #d9862c; stroke-width: 2; rx: 12; }
+      .purple { fill: #f0eaff; stroke: #7457bd; stroke-width: 2; rx: 12; }
+      .red { fill: #ffebec; stroke: #c94b55; stroke-width: 2.5; rx: 12; }
+      .gray { fill: #f1f4f7; stroke: #728397; stroke-width: 1.7; rx: 9; }
+      .arrow { fill: none; stroke: #325a81; stroke-width: 2.2; marker-end: url(#arrow); }
+      .arrow-g { fill: none; stroke: #3b8f62; stroke-width: 2.2; marker-end: url(#arrowG); }
+      .arrow-o { fill: none; stroke: #d9862c; stroke-width: 2.2; marker-end: url(#arrowO); }
+      .arrow-r { fill: none; stroke: #c94b55; stroke-width: 2.4; marker-end: url(#arrowR); }
+      .dash { stroke-dasharray: 7 6; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#325a81"/></marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#3b8f62"/></marker>
+    <marker id="arrowO" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#d9862c"/></marker>
+    <marker id="arrowR" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#c94b55"/></marker>
+  </defs>
+
+  <rect width="1920" height="1500" fill="#ffffff"/>
+  <text x="960" y="52" text-anchor="middle" class="title">Wan 2.1 Action2V — ar_diffusion_tf Architecture</text>
+  <text x="960" y="84" text-anchor="middle" class="subtitle">Causal AR Diffusion + Teacher Forcing + Camera PRoPE</text>
+
+  <!-- Stage 1 -->
+  <rect x="28" y="112" width="1864" height="390" class="panel"/>
+  <text x="52" y="145" class="section">① Initialization, inputs and teacher-forcing construction</text>
+
+  <rect x="58" y="170" width="235" height="68" class="purple"/>
+  <text x="176" y="197" text-anchor="middle" class="h">Bidirectional Action2V</text>
+  <text x="176" y="220" text-anchor="middle" class="t">Checkpoint</text>
+  <rect x="355" y="170" width="245" height="68" class="orange"/>
+  <text x="478" y="197" text-anchor="middle" class="h">CausalWanModel</text>
+  <text x="478" y="220" text-anchor="middle" class="t">strict initialization</text>
+  <path d="M293 204 L355 204" class="arrow-o"/>
+
+  <rect x="58" y="270" width="250" height="74" class="green"/>
+  <text x="183" y="297" text-anchor="middle" class="h">Clean VAE Latent x₀</text>
+  <text x="183" y="323" text-anchor="middle" class="mono">[B,20,16,60,104]</text>
+  <rect x="58" y="370" width="250" height="68" class="green"/>
+  <text x="183" y="397" text-anchor="middle" class="h">Gaussian Noise ε</text>
+  <text x="183" y="421" text-anchor="middle" class="t">same latent shape</text>
+
+  <text x="350" y="270" class="h">20 latent frames → five temporal blocks</text>
+  <text x="350" y="294" class="s">4 latent frames / block; same timestep inside each block</text>
+  <g transform="translate(350,312)">
+    <g><rect width="170" height="76" class="orange"/><text x="85" y="22" text-anchor="middle" class="h">Block 0 · t₀</text><rect x="13" y="36" width="30" height="25" class="gray"/><rect x="51" y="36" width="30" height="25" class="gray"/><rect x="89" y="36" width="30" height="25" class="gray"/><rect x="127" y="36" width="30" height="25" class="gray"/></g>
+    <g transform="translate(184,0)"><rect width="170" height="76" class="orange"/><text x="85" y="22" text-anchor="middle" class="h">Block 1 · t₁</text><rect x="13" y="36" width="30" height="25" class="gray"/><rect x="51" y="36" width="30" height="25" class="gray"/><rect x="89" y="36" width="30" height="25" class="gray"/><rect x="127" y="36" width="30" height="25" class="gray"/></g>
+    <g transform="translate(368,0)"><rect width="170" height="76" class="orange"/><text x="85" y="22" text-anchor="middle" class="h">Block 2 · t₂</text><rect x="13" y="36" width="30" height="25" class="gray"/><rect x="51" y="36" width="30" height="25" class="gray"/><rect x="89" y="36" width="30" height="25" class="gray"/><rect x="127" y="36" width="30" height="25" class="gray"/></g>
+    <g transform="translate(552,0)"><rect width="170" height="76" class="orange"/><text x="85" y="22" text-anchor="middle" class="h">Block 3 · t₃</text><rect x="13" y="36" width="30" height="25" class="gray"/><rect x="51" y="36" width="30" height="25" class="gray"/><rect x="89" y="36" width="30" height="25" class="gray"/><rect x="127" y="36" width="30" height="25" class="gray"/></g>
+    <g transform="translate(736,0)"><rect width="170" height="76" class="orange"/><text x="85" y="22" text-anchor="middle" class="h">Block 4 · t₄</text><rect x="13" y="36" width="30" height="25" class="gray"/><rect x="51" y="36" width="30" height="25" class="gray"/><rect x="89" y="36" width="30" height="25" class="gray"/><rect x="127" y="36" width="30" height="25" class="gray"/></g>
+  </g>
+  <path d="M308 306 L350 342" class="arrow-g"/>
+  <path d="M308 404 C330 404 330 372 350 372" class="arrow-g"/>
+
+  <rect x="1286" y="170" width="250" height="68" class="green"/>
+  <text x="1411" y="197" text-anchor="middle" class="h">UMT5 Text</text>
+  <text x="1411" y="221" text-anchor="middle" class="mono">[B,512,4096]</text>
+  <rect x="1570" y="170" width="280" height="68" class="green"/>
+  <text x="1710" y="197" text-anchor="middle" class="h">Camera Geometry</text>
+  <text x="1710" y="221" text-anchor="middle" class="t">viewmats [4×4] + Ks [3×3]</text>
+
+  <rect x="1286" y="280" width="280" height="66" class="orange"/>
+  <text x="1426" y="307" text-anchor="middle" class="h">Flow interpolation</text>
+  <text x="1426" y="331" text-anchor="middle" class="mono">xₜ=(1−σₜ)x₀+σₜε</text>
+  <rect x="1286" y="380" width="240" height="68" class="orange"/>
+  <text x="1406" y="407" text-anchor="middle" class="h">Clean Context Tokens</text>
+  <text x="1406" y="432" text-anchor="middle" class="mono">clean_x</text>
+  <rect x="1580" y="380" width="240" height="68" class="orange"/>
+  <text x="1700" y="407" text-anchor="middle" class="h">Noisy Prediction Tokens</text>
+  <text x="1700" y="432" text-anchor="middle" class="mono">noisy_xₜ</text>
+  <text x="1553" y="475" text-anchor="middle" class="mono">concatenate: [clean_x ; noisy_xₜ]</text>
+  <path d="M1256 350 L1286 313" class="arrow-o"/>
+  <path d="M1566 313 L1700 380" class="arrow-o"/>
+  <path d="M1256 350 L1406 380" class="arrow-o"/>
+
+  <!-- Stage 2 -->
+  <rect x="28" y="524" width="1864" height="670" class="panel"/>
+  <text x="52" y="558" class="section">② CausalWanModel generator</text>
+
+  <rect x="60" y="590" width="260" height="84" class="blue"/>
+  <text x="190" y="617" text-anchor="middle" class="h">3D Patch Embedding</text>
+  <text x="190" y="642" text-anchor="middle" class="mono">Conv3d 16→1536</text>
+  <text x="190" y="663" text-anchor="middle" class="s">patch = 1×2×2</text>
+
+  <rect x="60" y="710" width="260" height="76" class="green"/>
+  <text x="190" y="738" text-anchor="middle" class="h">Text Projection</text>
+  <text x="190" y="764" text-anchor="middle" class="mono">4096 → 1536</text>
+  <rect x="60" y="824" width="260" height="88" class="orange"/>
+  <text x="190" y="852" text-anchor="middle" class="h">Diffusion Time Embedding</text>
+  <text x="190" y="876" text-anchor="middle" class="t">sinusoidal → MLP</text>
+  <text x="190" y="899" text-anchor="middle" class="t">6-way AdaLN modulation</text>
+
+  <path d="M320 632 L382 632" class="arrow"/>
+  <path d="M320 748 C350 748 350 830 382 830" class="arrow-g"/>
+  <path d="M320 868 C350 868 350 740 382 740" class="arrow-o"/>
+
+  <rect x="382" y="584" width="930" height="554" class="blue"/>
+  <text x="847" y="618" text-anchor="middle" class="section">30 × Causal Wan Transformer Block</text>
+
+  <rect x="414" y="646" width="866" height="454" fill="#ffffff" stroke="#76a4d2" stroke-width="2" rx="14"/>
+  <text x="438" y="676" class="h">Expanded block</text>
+
+  <rect x="438" y="704" width="210" height="58" class="orange"/>
+  <text x="543" y="729" text-anchor="middle" class="h">LayerNorm + AdaLN</text>
+  <text x="543" y="750" text-anchor="middle" class="s">shift / scale / gate</text>
+  <rect x="692" y="690" width="320" height="100" class="blue"/>
+  <text x="852" y="718" text-anchor="middle" class="h">Causal Self-Attention</text>
+  <rect x="716" y="739" width="120" height="34" class="purple"/><text x="776" y="761" text-anchor="middle" class="t">3D RoPE</text>
+  <rect x="856" y="739" width="132" height="34" class="green"/><text x="922" y="761" text-anchor="middle" class="t">Camera PRoPE</text>
+  <rect x="1055" y="704" width="195" height="58" class="gray"/>
+  <text x="1152" y="739" text-anchor="middle" class="h">Residual add</text>
+  <path d="M648 733 L692 733" class="arrow-o"/><path d="M1012 733 L1055 733" class="arrow"/>
+
+  <rect x="438" y="824" width="270" height="62" class="green"/>
+  <text x="573" y="850" text-anchor="middle" class="h">UMT5 Text Cross-Attention</text>
+  <text x="573" y="873" text-anchor="middle" class="s">Q: video · K/V: text</text>
+  <rect x="750" y="824" width="180" height="62" class="gray"/>
+  <text x="840" y="860" text-anchor="middle" class="h">Residual add</text>
+  <path d="M708 855 L750 855" class="arrow-g"/>
+
+  <rect x="438" y="938" width="210" height="58" class="orange"/>
+  <text x="543" y="973" text-anchor="middle" class="h">LayerNorm + AdaLN</text>
+  <rect x="692" y="926" width="320" height="82" class="blue"/>
+  <text x="852" y="957" text-anchor="middle" class="h">Feed-Forward Network</text>
+  <text x="852" y="985" text-anchor="middle" class="mono">Linear → GELU → Linear</text>
+  <rect x="1055" y="938" width="195" height="58" class="gray"/>
+  <text x="1152" y="973" text-anchor="middle" class="h">Residual add</text>
+  <path d="M648 967 L692 967" class="arrow-o"/><path d="M1012 967 L1055 967" class="arrow"/>
+
+  <text x="847" y="1060" text-anchor="middle" class="s">Each block reuses the same causal visibility policy; parameters are block-specific.</text>
+
+  <!-- mask -->
+  <rect x="1350" y="584" width="505" height="410" class="orange"/>
+  <text x="1602" y="618" text-anchor="middle" class="h">Block-Causal Attention Mask</text>
+  <text x="1602" y="642" text-anchor="middle" class="s">rows=query block · columns=key block</text>
+  <g transform="translate(1460,680)">
+    <text x="-25" y="30" class="s">B0</text><text x="-25" y="70" class="s">B1</text><text x="-25" y="110" class="s">B2</text><text x="-25" y="150" class="s">B3</text><text x="-25" y="190" class="s">B4</text>
+    <text x="20" y="-10" class="s">B0</text><text x="60" y="-10" class="s">B1</text><text x="100" y="-10" class="s">B2</text><text x="140" y="-10" class="s">B3</text><text x="180" y="-10" class="s">B4</text>
+    <g fill="#e8edf2" stroke="#9baaba"><rect x="0" y="0" width="36" height="36"/><rect x="40" y="0" width="36" height="36"/><rect x="80" y="0" width="36" height="36"/><rect x="120" y="0" width="36" height="36"/><rect x="160" y="0" width="36" height="36"/><rect x="0" y="40" width="36" height="36"/><rect x="40" y="40" width="36" height="36"/><rect x="80" y="40" width="36" height="36"/><rect x="120" y="40" width="36" height="36"/><rect x="160" y="40" width="36" height="36"/><rect x="0" y="80" width="36" height="36"/><rect x="40" y="80" width="36" height="36"/><rect x="80" y="80" width="36" height="36"/><rect x="120" y="80" width="36" height="36"/><rect x="160" y="80" width="36" height="36"/><rect x="0" y="120" width="36" height="36"/><rect x="40" y="120" width="36" height="36"/><rect x="80" y="120" width="36" height="36"/><rect x="120" y="120" width="36" height="36"/><rect x="160" y="120" width="36" height="36"/><rect x="0" y="160" width="36" height="36"/><rect x="40" y="160" width="36" height="36"/><rect x="80" y="160" width="36" height="36"/><rect x="120" y="160" width="36" height="36"/><rect x="160" y="160" width="36" height="36"/></g>
+    <g fill="#e0933b" stroke="#bd6e18"><rect x="0" y="0" width="36" height="36"/><rect x="0" y="40" width="36" height="36"/><rect x="40" y="40" width="36" height="36"/><rect x="0" y="80" width="36" height="36"/><rect x="40" y="80" width="36" height="36"/><rect x="80" y="80" width="36" height="36"/><rect x="0" y="120" width="36" height="36"/><rect x="40" y="120" width="36" height="36"/><rect x="80" y="120" width="36" height="36"/><rect x="120" y="120" width="36" height="36"/><rect x="0" y="160" width="36" height="36"/><rect x="40" y="160" width="36" height="36"/><rect x="80" y="160" width="36" height="36"/><rect x="120" y="160" width="36" height="36"/><rect x="160" y="160" width="36" height="36"/></g>
+  </g>
+  <text x="1690" y="704" class="t">✓ same block visible</text>
+  <text x="1690" y="740" class="t">✓ past blocks visible</text>
+  <text x="1690" y="776" class="t">× future blocks hidden</text>
+  <text x="1602" y="922" text-anchor="middle" class="s">Noisy block sees itself + previous clean blocks</text>
+  <rect x="1390" y="1024" width="425" height="72" class="purple"/>
+  <text x="1602" y="1052" text-anchor="middle" class="h">Inference runtime caches</text>
+  <text x="1602" y="1079" text-anchor="middle" class="t">KV · Cross-Attention · PRoPE KV</text>
+
+  <rect x="400" y="1120" width="300" height="54" class="blue"/>
+  <text x="550" y="1153" text-anchor="middle" class="h">Timestep-Conditioned Flow Head</text>
+  <rect x="758" y="1120" width="260" height="54" class="blue"/>
+  <text x="888" y="1153" text-anchor="middle" class="mono">1536 → 64 / patch</text>
+  <rect x="1076" y="1120" width="260" height="54" class="blue"/>
+  <text x="1206" y="1153" text-anchor="middle" class="h">Unpatchify</text>
+  <rect x="1394" y="1120" width="385" height="54" class="blue"/>
+  <text x="1586" y="1153" text-anchor="middle" class="mono">Flow [B,20,16,60,104]</text>
+  <path d="M700 1147 L758 1147" class="arrow"/><path d="M1018 1147 L1076 1147" class="arrow"/><path d="M1336 1147 L1394 1147" class="arrow"/>
+
+  <!-- Stage 3 -->
+  <rect x="28" y="1218" width="1864" height="250" class="panel"/>
+  <text x="52" y="1252" class="section">③ Flow prediction and training objective</text>
+  <rect x="70" y="1290" width="380" height="76" class="blue"/>
+  <text x="260" y="1318" text-anchor="middle" class="h">Predicted Flow</text>
+  <text x="260" y="1345" text-anchor="middle" class="mono">vθ(xₜ,t,text,camera)</text>
+  <rect x="70" y="1384" width="380" height="58" class="purple"/>
+  <text x="260" y="1420" text-anchor="middle" class="mono">x̂₀ = xₜ − σₜvθ</text>
+  <rect x="600" y="1290" width="330" height="76" class="green"/>
+  <text x="765" y="1318" text-anchor="middle" class="h">Flow Target</text>
+  <text x="765" y="1345" text-anchor="middle" class="mono">ε − x₀</text>
+  <rect x="1080" y="1290" width="360" height="86" class="red"/>
+  <text x="1260" y="1323" text-anchor="middle" class="h">Weighted Flow Matching MSE</text>
+  <text x="1260" y="1351" text-anchor="middle" class="mono">w(t) · ||vθ − (ε−x₀)||²</text>
+  <path d="M450 1328 L1080 1328" class="arrow-r"/>
+  <path d="M930 1328 L1080 1328" class="arrow-r"/>
+  <path d="M260 1366 L260 1384" class="arrow"/>
+
+  <rect x="1500" y="1276" width="350" height="166" class="gray"/>
+  <text x="1675" y="1304" text-anchor="middle" class="h">Shared pretrained components</text>
+  <text x="1522" y="1332" class="s">• Frozen Wan VAE</text>
+  <text x="1522" y="1354" class="s">• Frozen UMT5 encoder</text>
+  <text x="1522" y="1376" class="s">• Patch / Text / Time embeddings</text>
+  <text x="1522" y="1398" class="s">• 30 Transformer blocks + Flow head</text>
+  <text x="1522" y="1420" class="s">• FlowMatchScheduler + Camera PRoPE</text>
+</svg>
