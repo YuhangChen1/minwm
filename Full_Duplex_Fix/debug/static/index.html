@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Full Duplex Training Inspector</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="identity">
+      <h1>Full Duplex Training Inspector</h1>
+      <span id="sessionId" class="session-id">not started</span>
+    </div>
+    <div class="run-summary">
+      <div><span class="label">GPU</span><strong id="deviceValue">cuda:2</strong></div>
+      <div><span class="label">STEP</span><strong id="stepValue">0 / 5</strong></div>
+      <div><span class="label">EVENTS</span><strong id="eventCount">0</strong></div>
+      <div id="statusBadge" class="status-badge idle">NOT STARTED</div>
+    </div>
+  </header>
+
+  <section class="control-band">
+    <div class="controls">
+      <button id="nextButton" type="button">Next breakpoint</button>
+      <button id="autoButton" type="button">Auto run</button>
+      <button id="pauseButton" type="button">Pause next</button>
+      <button id="stopButton" class="danger" type="button">Stop</button>
+      <button id="resetButton" type="button">Reset</button>
+      <label for="delaySelect">Auto delay</label>
+      <select id="delaySelect">
+        <option value="0">0 ms</option>
+        <option value="50" selected>50 ms</option>
+        <option value="200">200 ms</option>
+        <option value="500">500 ms</option>
+      </select>
+    </div>
+    <div class="progress-track" aria-label="training progress">
+      <div id="progressBar" class="progress-bar"></div>
+    </div>
+    <div id="errorBanner" class="error-banner" hidden></div>
+  </section>
+
+  <main class="workspace">
+    <aside class="timeline-panel">
+      <div class="panel-heading">
+        <h2>Breakpoint timeline</h2>
+        <select id="phaseFilter" aria-label="phase filter">
+          <option value="all">All phases</option>
+          <option value="forward">Forward</option>
+          <option value="backward">Backward</option>
+          <option value="optimizer">Optimizer</option>
+          <option value="error">Errors</option>
+        </select>
+      </div>
+      <input id="eventSearch" class="search-input" type="search" placeholder="Filter event name">
+      <div id="eventList" class="event-list"></div>
+    </aside>
+
+    <section class="detail-panel">
+      <div class="panel-heading detail-heading">
+        <div>
+          <div id="eventPath" class="event-path">Waiting for first breakpoint</div>
+          <h2 id="eventTitle">No event selected</h2>
+        </div>
+        <div id="eventTiming" class="event-timing">0.00 ms</div>
+      </div>
+
+      <div id="shapeFlow" class="shape-flow"></div>
+
+      <section class="detail-section">
+        <h3>Tensor state</h3>
+        <div id="tensorGrid" class="tensor-grid"></div>
+      </section>
+
+      <section class="detail-section">
+        <h3>Operation metadata</h3>
+        <div id="metadataGrid" class="metadata-grid"></div>
+      </section>
+
+      <section id="parameterSection" class="detail-section" hidden>
+        <div class="parameter-heading">
+          <h3>Parameter values</h3>
+          <input id="parameterSearch" class="search-input" type="search" placeholder="Filter parameter name">
+        </div>
+        <div id="parameterSummary" class="parameter-summary"></div>
+        <div class="table-scroll">
+          <table class="parameter-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Shape</th>
+                <th>Before [0:2]</th>
+                <th>After [0:2]</th>
+                <th>Delta [0:2]</th>
+                <th>Gradient [0:2]</th>
+              </tr>
+            </thead>
+            <tbody id="parameterRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tracebackSection" class="detail-section" hidden>
+        <h3>Traceback</h3>
+        <pre id="tracebackValue" class="traceback"></pre>
+      </section>
+    </section>
+
+    <aside class="metrics-panel">
+      <div class="panel-heading">
+        <h2>Five-step metrics</h2>
+        <span id="modeValue" class="mode-value">STEP</span>
+      </div>
+      <canvas id="lossCanvas" width="420" height="190"></canvas>
+      <div class="metric-table">
+        <div><span>Latest loss</span><strong id="latestLoss">-</strong></div>
+        <div><span>Init N0</span><strong id="latestInit">-</strong></div>
+        <div><span>Transition</span><strong id="latestTransition">-</strong></div>
+        <div><span>Gradient norm</span><strong id="latestGrad">-</strong></div>
+      </div>
+      <div class="phase-counts">
+        <h3>Event phases</h3>
+        <div><span>Forward</span><strong id="forwardCount">0</strong></div>
+        <div><span>Backward</span><strong id="backwardCount">0</strong></div>
+        <div><span>Optimizer</span><strong id="optimizerCount">0</strong></div>
+      </div>
+      <div class="run-path">
+        <h3>Run output</h3>
+        <code id="outputPath">-</code>
+      </div>
+    </aside>
+  </main>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

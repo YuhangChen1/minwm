@@ -1,0 +1,55 @@
+{
+  "caption": "A 3D animation featuring Ali, a dedicated university student studying physics, with dreams of becoming a renowned scientist. Ali is depicted as a young adult with a determined look on their face, wearing a lab coat over casual clothes. They are standing in front of a chalkboard filled with complex equations and formulas, surrounded by scientific equipment and books. The background showcases a modern university laboratory with various experiments in progress. Ali is gesturing enthusiastically towards the equations, illustrating a moment of inspiration or discovery. The scene emphasizes Ali’s passion and commitment to their academic pursuits. Medium shot.",
+  "comparison_with_existing_preencode_cache": {
+    "bitwise_equal": true,
+    "cache_path": "/workspace/yuhang/minwm/Full_Duplex_Fix/cache/smallest_000000",
+    "max_abs_difference": 0.0
+  },
+  "encoding": {
+    "batch_size": 1,
+    "embedding_max": 1.3046875,
+    "embedding_mean": 2.4948723876150325e-05,
+    "embedding_min": -1.53125,
+    "embedding_std": 0.04188019037246704,
+    "finite": true,
+    "max_sequence_length": 512,
+    "padding_embeddings_zero": true,
+    "padding_tokens": 380,
+    "prompt_attention_mask_dtype": "torch.bool",
+    "prompt_attention_mask_shape": [
+      1,
+      512
+    ],
+    "prompt_embedding_device_saved": "cpu",
+    "prompt_embedding_dtype": "torch.bfloat16",
+    "prompt_embedding_shape": [
+      1,
+      512,
+      4096
+    ],
+    "valid_tokens": 132
+  },
+  "format_version": "full_duplex_fix_t5_middle_v1",
+  "output_tensor_file": "/workspace/yuhang/minwm/Full_Duplex_Fix/middle/t5_encoded.pt",
+  "pose_str": "right-8, a-11",
+  "runtime_seconds": 17.98244108259678,
+  "sample_index": 0,
+  "source_metadata": "/workspace/yuhang/minwm/dataset/SmallestData/smllest_input.json",
+  "t5_checkpoint": {
+    "path": "/workspace/yuhang/minwm/ckpts/Wan2.1-T2V-1.3B/models_t5_umt5-xxl-enc-bf16.pth",
+    "size_bytes": 11361920418
+  },
+  "t5_tokenizer": {
+    "files": [
+      "special_tokens_map.json",
+      "spiece.model",
+      "tokenizer.json",
+      "tokenizer_config.json"
+    ],
+    "path": "/workspace/yuhang/minwm/ckpts/Wan2.1-T2V-1.3B/google/umt5-xxl"
+  },
+  "tensor_sha256": {
+    "prompt_attention_mask": "f48339b25f4dce3738618e04ccdf00ef9461ef5dd6166730ec3fe9b7b61f0c70",
+    "prompt_embedding": "5d3fc363a95f87ce3d5e066fbaaa8d7af63e54b881e5687ede38d59a3bef31b6"
+  }
+}

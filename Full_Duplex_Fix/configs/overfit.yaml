@@ -1,0 +1,92 @@
+project_root: /workspace/yuhang/minwm
+
+generator_checkpoint_stage: ar_diffusion_tf
+base_checkpoint: ckpts/Wan21/Action2V/ar_diffusion_tf/model.pt
+expected_base_checkpoint_size: 5959605031
+expected_base_checkpoint_sha256: af73a86322f982cbab0446c6934f6f8dcc9f555f4d0652863baf04f4485a96dd
+verify_checkpoint_hash: true
+vae_checkpoint: ckpts/Wan2.1-T2V-1.3B/Wan2.1_VAE.pth
+t5_checkpoint: ckpts/Wan2.1-T2V-1.3B/models_t5_umt5-xxl-enc-bf16.pth
+t5_tokenizer: ckpts/Wan2.1-T2V-1.3B/google/umt5-xxl
+
+video_path: dataset/SmallestData/000000_right8a11/gen.mp4
+metadata_path: dataset/SmallestData/smllest_input.json
+action_manifest: dataset/SmallestData/split_4f_actions/manifest.json
+cache_path: Full_Duplex_Fix/cache/smallest_000000
+output_dir: Full_Duplex_Fix/outputs/smallest_000000
+cache_version: full_duplex_fix_v2
+layout_version: interleaved_40_span_v1
+mask_version: role_time_single_state_v1
+camera_protocol: prope_repository_geometry_v1
+rope_protocol: explicit_physical_thw_v1
+
+num_states: 20
+num_noisy_spans: 20
+num_clean_spans: 20
+num_total_spans: 40
+tokens_per_span: 1560
+sequence_length: 62400
+num_frame_per_block: 1
+num_transformer_blocks: 30
+spatial_token_stride: 1
+
+source_frames: 77
+source_fps: 24
+frames_per_transition: 4
+target_height: 480
+target_width: 832
+latent_channels: 16
+latent_height: 60
+latent_width: 104
+patch_height: 30
+patch_width: 52
+patch_size: [1, 2, 2]
+model_dim: 1536
+num_heads: 12
+head_dim: 128
+text_length: 512
+text_dim: 4096
+
+num_train_timesteps: 1000
+timestep_shift: 5.0
+learning_rate: 1.0e-5
+weight_decay: 0.0
+beta1: 0.0
+beta2: 0.999
+batch_size: 1
+gradient_accumulation_steps: 1
+max_grad_norm: 10.0
+max_steps: 2000
+mixed_precision: bf16
+gradient_checkpointing: true
+distributed_backend: single_gpu
+fsdp_enabled: false
+sequence_parallel_size: 1
+world_size: 1
+lr_scheduler: constant
+seed: 20260715
+
+sampling_steps: 50
+guidance_scale: 3.0
+fixed_evaluation_seed: 20260715
+negative_prompt: "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
+
+local_attention_states: 20
+save_every: 2000
+eval_every: 2000
+log_every: 1
+hash_large_preprocessing_files: true
+
+wandb_enabled: true
+wandb_mode: online
+wandb_project: minwm-full-duplex-fix
+wandb_entity: null
+wandb_run_name: null
+wandb_run_id: null
+wandb_group: single-sample-overfit
+wandb_job_type: single_sample_overfit
+wandb_tags: [minwm, full-duplex, single-sample-overfit, wan2.1]
+wandb_notes: "Single-video 20-state interleaved teacher-forcing experiment."
+wandb_dir: Full_Duplex_Fix/outputs/wandb
+# Large optimizer checkpoints remain local unless this is explicitly enabled.
+wandb_log_checkpoints: false
