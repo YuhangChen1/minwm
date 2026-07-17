@@ -15,6 +15,7 @@ import numpy as np
 import torch
 
 from .checkpoint import load_strict_generator
+from .checkpoint_io import replace_with_link
 from .config import resolved_config_for_json
 from .data import CachedSample, load_cached_sample, tensor_sha256
 from .debug.tracer import (
@@ -566,14 +567,12 @@ class OverfitTrainer:
     def save_checkpoint(self, name: str, metrics: dict[str, Any]) -> Path:
         path = self.output_dir / f"{name}.pt"
         temporary = path.with_suffix(".pt.tmp")
-        state = {
+        state: dict[str, Any] = {
             "checkpoint_version": CHECKPOINT_VERSION,
             "generator": {
                 key: value.detach().cpu()
                 for key, value in self.model.generator.state_dict().items()
             },
-            "optimizer": self.optimizer.state_dict(),
-            "lr_scheduler": self.lr_scheduler.state_dict(),
             "global_step": self.global_step,
             "best_metric": self.best_metric,
             "best_step": self.best_step,
@@ -587,6 +586,9 @@ class OverfitTrainer:
             "resume_contract": self._resume_contract(),
             "wandb": self.wandb.identity or self.restored_wandb_identity,
         }
+        if bool(self.config.get("checkpoint_include_optimizer", True)):
+            state["optimizer"] = self.optimizer.state_dict()
+            state["lr_scheduler"] = self.lr_scheduler.state_dict()
         torch.save(state, temporary)
         os.replace(temporary, path)
         self.wandb.checkpoint_saved(
@@ -613,9 +615,14 @@ class OverfitTrainer:
         incompatible = self.model.generator.load_state_dict(state["generator"], strict=True)
         if incompatible.missing_keys or incompatible.unexpected_keys:
             raise RuntimeError(f"Unexpected resume mismatch: {incompatible}")
-        if load_optimizer:
+        if load_optimizer and "optimizer" in state and "lr_scheduler" in state:
             self.optimizer.load_state_dict(state["optimizer"])
             self.lr_scheduler.load_state_dict(state["lr_scheduler"])
+        elif load_optimizer:
+            print(
+                "Checkpoint is generator-only; optimizer and scheduler start fresh.",
+                flush=True,
+            )
         self.global_step = int(state["global_step"])
         self.best_metric = float(state["best_metric"])
         self.best_step = int(state["best_step"])
@@ -637,9 +644,13 @@ class OverfitTrainer:
     def _train_loop(self, max_steps: int) -> None:
         if self.global_step == 0:
             initial = self.evaluate_fixed()
-            self.best_metric = float(initial["latent_mse"])
-            self.best_step = 0
-            self.save_checkpoint("initial", initial)
+            if bool(self.config.get("save_initial_checkpoint", True)):
+                self.best_metric = float(initial["latent_mse"])
+                self.best_step = 0
+                self.save_checkpoint("initial", initial)
+            else:
+                self.best_metric = math.inf
+                self.best_step = -1
             self.log_record("initial_evaluation", initial)
         while self.global_step < max_steps:
             record = self.train_step()
@@ -649,15 +660,30 @@ class OverfitTrainer:
                 self.global_step % int(self.config["eval_every"]) == 0
                 or self.global_step == max_steps
             )
+            best_at_this_step = False
             if should_evaluate:
                 metrics = self.evaluate_fixed()
                 self.log_record("fixed_evaluation", metrics)
                 if metrics["latent_mse"] < self.best_metric:
                     self.best_metric = float(metrics["latent_mse"])
                     self.best_step = self.global_step
-                    self.save_checkpoint("best", metrics)
-            if (
+                    best_at_this_step = True
+            should_save = (
                 self.global_step % int(self.config["save_every"]) == 0
                 or self.global_step == max_steps
-            ):
-                self.save_checkpoint("latest", record)
+            )
+            if should_save:
+                if bool(self.config.get("retain_step_checkpoints", False)):
+                    checkpoint = self.save_checkpoint(
+                        f"step_{self.global_step:06d}",
+                        metrics if should_evaluate else record,
+                    )
+                    replace_with_link(checkpoint, self.output_dir / "latest.pt")
+                    if best_at_this_step:
+                        replace_with_link(checkpoint, self.output_dir / "best.pt")
+                else:
+                    self.save_checkpoint("latest", record)
+                    if best_at_this_step:
+                        self.save_checkpoint("best", metrics)
+            elif best_at_this_step:
+                self.save_checkpoint("best", metrics)

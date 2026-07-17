@@ -1,0 +1,358 @@
+{
+  "cache_version": "full_duplex_dataset_cache_v1",
+  "input_manifest": "/workspace/yuhang/minwm/dataset/Data_50/preencode_input.json",
+  "input_manifest_sha256": "9dfc7327cb85809834f07de8c943a067dd514defbc7b37e04ff13d95770a3112",
+  "sample_count": 50,
+  "samples": [
+    {
+      "cache_file": "samples/000000.pt",
+      "caption": "A 3D animation featuring Ali, a dedicated university student studying physics, with dreams of becoming a renowned scientist. Ali is depicted as a young adult with a determined look on their face, wearing a lab coat over casual clothes. They are standing in front of a chalkboard filled with complex equations and formulas, surrounded by scientific equipment and books. The background showcases a modern university laboratory with various experiments in progress. Ali is gesturing enthusiastically towards the equations, illustrating a moment of inspiration or discovery. The scene emphasizes Ali’s passion and commitment to their academic pursuits. Medium shot.",
+      "index": 0,
+      "pose_str": "right-8, a-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000000_right8a11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000001.pt",
+      "caption": "\"A Day in the Life of a Busy Mom\" in a 3D animation style with anime influences. The scene opens with a close-up of a busy mom, depicted with a warm and friendly expression, as she wakes up early in the morning. She quickly gets dressed in a casual yet stylish outfit and prepares breakfast for her family. The kitchen is bustling with activity, and the mom moves efficiently from the stove to the refrigerator, preparing various dishes. Her movements are fluid and natural, reflecting her practiced routine. In the background, the family is shown waking up, yawning, and coming downstairs. The lighting is soft and warm, capturing the cozy atmosphere of a family home during the early morning hours. Wide shot, showing the full kitchen and family interaction.",
+      "index": 1,
+      "pose_str": "left-8, w-4, a-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000001_left8w4a7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000002.pt",
+      "caption": "\"A London Adventure: Family Vacation\" - A vibrant and colorful travel vlog showcasing a family of four exploring iconic London landmarks. The family consists of two adults and two children, all dressed in casual, modern attire suitable for sightseeing. They start their day at Buckingham Palace, where they watch the Changing of the Guard ceremony with awe and excitement. Next, they stroll across Trafalgar Square, admiring Nelson's Column and feeding pigeons. In the afternoon, they visit the Tower of London, where the children explore the Crown Jewels exhibit with wide-eyed wonder. The video captures the family's joy and laughter throughout their journey, with scenes filmed from various angles, including medium shots and close-ups, to highlight their interactions and reactions to each location. The overall style is lively and engaging, perfect for a fun-filled family vacation vlog.",
+      "index": 2,
+      "pose_str": "w-4, d-8, a-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000002_w4d8a7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000003.pt",
+      "caption": "\"A Love Blossomed in School,\" a heartwarming school romance story illustrated in a soft watercolor style. A young East Asian boy and girl, both with fair skin and expressive faces, stand under a cherry blossom tree during springtime. They are holding hands, smiling warmly at each other. The boy is wearing a navy blue school uniform with a white shirt, and the girl is in a light pink blouse with a pleated skirt. The background showcases a picturesque school campus with blooming cherry blossoms, green lawns, and traditional Japanese-style buildings. The scene captures a tender moment of shared joy and budding love. Medium close-up shot focusing on the couple.",
+      "index": 3,
+      "pose_str": "left-8, d-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000003_left8d11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000004.pt",
+      "caption": "A boy named ElectronicsBoy, approximately 12 years old, is sitting at a wooden desk cluttered with electronic components and tools. He is engrossed in playing with a Raspberry Pi Pico microcontroller, which is connected to an ST7735 SPI TFT LCD screen. The screen displays a Linux-based graphical interface. ElectronicsBoy has short messy hair and wears round glasses. His face shows concentration as he types commands on a USB keyboard connected to the Raspberry Pi Pico. The background includes various wires, soldering irons, and other tech gadgets. The lighting is soft, casting a warm glow over the setup. Medium close-up shot focusing on the boy's hands and the screen.",
+      "index": 4,
+      "pose_str": "down-4, w-4, d-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000004_down4w4d11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000005.pt",
+      "caption": "A captivating, vibrant illustration of a majestic waterfall cascading down rocky cliffs, surrounded by lush, verdant vegetation and vibrant wildlife. The waterfall's mist rises gracefully, creating a shimmering rainbow effect against the backdrop of dense foliage. Various species of birds and butterflies flutter around, adding life and color to the scene. The lush greenery includes towering trees, ferns, and wildflowers, all bathed in soft sunlight filtering through the canopy. The scene is rendered in a realistic watercolor style, emphasizing the dynamic flow of water and the rich, detailed textures of nature. Wide shot, static view.",
+      "index": 5,
+      "pose_str": "right-8, left-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000005_right8left11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000006.pt",
+      "caption": "A dreamy watercolor scene with an Eastern minimalist style, depicting a serene garden at dawn. The garden features sparse, elegant bamboo and cherry blossom trees, with soft pastel colors blending into the misty horizon. A tranquil koi pond reflects the gentle sky, adding a sense of calmness. The composition is minimalist, focusing on the interplay between light and shadow, with subtle brushstrokes creating a soft, dreamlike atmosphere. Panoramic scale, showcasing the vast yet peaceful landscape.",
+      "index": 6,
+      "pose_str": "a-8, left-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000006_a8left11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000007.pt",
+      "caption": "A graceful East Asian girl dancing joyfully in a vast golden wheat field. She is dressed in a flowing white sundress with delicate floral patterns and a cheerful smile on her face. Butterflies flutter around her, adding to the serene and enchanting atmosphere. The sun is shining brightly, casting a warm glow over the scene. The background showcases the endless rolling fields of wheat swaying gently in the breeze. The girl's arms and legs move gracefully as she dances, creating a harmonious blend of motion and beauty. Medium shot capturing her dance from a side angle.",
+      "index": 7,
+      "pose_str": "a-8, left-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000007_a8left11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000008.pt",
+      "caption": "A heroic group of diverse animals standing together in a lush forest clearing. The animals include a lion, an elephant, a gorilla, and a wolf, all displaying confident and determined expressions. They are standing in a tight formation, with the lion at the front, the elephant on the right, the gorilla in the middle, and the wolf on the left. Their postures convey strength and unity. The forest background is dense with tall trees and vibrant green foliage. The scene is bathed in soft sunlight filtering through the canopy. The animals stand still, but the viewer can sense their readiness to act as a team. Wide shot, capturing the entire group in a majestic setting.",
+      "index": 8,
+      "pose_str": "right-8, up-4, d-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000008_right8up4d7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000009.pt",
+      "caption": "A magical Christmas scene featuring the Snow Maiden. The Snow Maiden is a beautiful young woman with flowing silver hair and wearing a white fur-lined gown adorned with sparkling icicles. She has rosy cheeks and a warm, gentle smile. She is standing in a snowy forest, surrounded by towering evergreen trees decorated with frost and twinkling fairy lights. In her arms, she holds a large, beautifully wrapped gift box tied with a red bow. The sky is clear and starry, with a bright full moon casting a soft glow over the snow-covered landscape. The scene captures a serene and enchanting winter wonderland atmosphere. Wide shot.",
+      "index": 9,
+      "pose_str": "down-4, s-4, d-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000009_down4s4d11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000010.pt",
+      "caption": "A man stands atop a towering mountain peak at 12,000 feet, surrounded by breathtaking panoramic views of rugged terrain and snow-capped peaks. The man is dressed in warm, layered clothing suitable for extreme altitudes, with a determined and awe-struck expression on his face. His posture is upright and steady, hands resting lightly on his sides. The landscape around him is richly detailed, featuring intricate textures of rock formations, patches of snow, and wisps of cloud cover. The environment is rendered in stunning 12K, UHD resolution with complex details and realistic lighting effects, capturing the essence of the high-altitude wilderness. Wide shot, static scene.",
+      "index": 10,
+      "pose_str": "left-8, d-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000010_left8d11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000011.pt",
+      "caption": "A man with intricate Sumatran-inspired tattoos, including a detailed cat tattoo on his chest, sits calmly in a chair with his hands crossed and eyes closed. His tattoos feature vibrant colors and flowing patterns characteristic of Android Jones' style. The man has a serene expression, and his posture conveys relaxation. The background is a blurred, ethereal space that complements the mystical quality of the tattoos. The lighting highlights the textures and hues of the artwork. Medium close-up shot, static.",
+      "index": 11,
+      "pose_str": "w-4, right-8, a-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000011_w4right8a7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000012.pt",
+      "caption": "A player named Fetronic playing 'Among Us.' The character has a vibrant green skin tone and two large, expressive eyes with glowing green irises. Fetronic is wearing a standard crewmember outfit with a white shirt and black pants, featuring the iconic 'Among Us' logo on the chest. They are standing in the game's spaceship environment, which includes various control panels, doors, and corridors. Fetronic is pointing at something suspicious, looking intensely focused and slightly worried. The background shows other crewmates moving around the ship, adding to the interactive gameplay atmosphere. Medium shot capturing the player's detailed facial expressions and body language.",
+      "index": 12,
+      "pose_str": "s-4, left-8, w-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000012_s4left8w7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000013.pt",
+      "caption": "A simple, elegant design featuring the title 'Serene Reflections' over a calming, peaceful background. The background showcases a tranquil nature scene, such as a serene forest glade with soft dappled sunlight filtering through the leaves, or a gently flowing river winding through lush green meadows. The scene is bathed in warm, natural light, creating a soothing atmosphere. The title is presented in a clean, modern font, positioned gracefully within the frame, ensuring readability without overpowering the serene visuals. Static shot, showcasing the beauty and tranquility of the environment.",
+      "index": 13,
+      "pose_str": "up-4, right-8, s-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000013_up4right8s7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000014.pt",
+      "caption": "A to Z animated alphabet, where each letter comes to life as a talking character. Each character represents its corresponding letter, with unique personalities and outfits. For example, 'A' could be an adventurous astronaut, 'B' a brave ballerina, and so forth. Characters express themselves through exaggerated facial expressions and gestures. Each character appears sequentially, speaking their letter and a brief sentence that showcases their personality. The background is a colorful, playful environment filled with whimsical elements like clouds, stars, and balloons. Shot in a close-up, medium shot, and full body perspective to highlight each character's features and actions.",
+      "index": 14,
+      "pose_str": "right-8, w-4, down-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000014_right8w4down7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000015.pt",
+      "caption": "Abe no Seimei, a renowned Onmyoji from ancient Japan, casts a powerful incantation. He wears traditional Japanese robes, including a black kimono with red accents and a conical black hat. His face shows intense concentration as he gestures with both hands, forming intricate hand seals. Smoke and ethereal lights swirl around him, enhancing the mystical atmosphere. The background features a dimly lit Shinto shrine, with flickering candles and shadows dancing on the walls. The scene captures Abe no Seimei in a medium close-up, emphasizing his focused expression and the magical energy surrounding him.",
+      "index": 15,
+      "pose_str": "left-8, a-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000015_left8a11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000016.pt",
+      "caption": "\"Absolute Love in Full Circle,\" styled as an 8K ultrafine detail film photograph with vintage film grain and a private press aesthetic. This masterpiece captures a tender moment between two people from different generations, perhaps a parent and child, embracing in a nostalgic setting bathed in warm, golden hour sunlight. The scene is rich with subtle details, such as textured clothing and intricate facial expressions, set against a blurred backdrop of classic architecture or a serene natural landscape. The image exudes a sense of timeless beauty and emotional depth, evoking the essence of cinematic storytelling. Wide shot, static composition, capturing the full embrace and surrounding environment in exquisite detail.",
+      "index": 16,
+      "pose_str": "a-8, up-4, s-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000016_a8up4s7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000017.pt",
+      "caption": "Aerial view of Sandy Bay on Lake Baikal in winter, captured in ultra-high resolution film. The scene showcases a serene frozen lake surface covered in a layer of snow, with patches of clear ice visible beneath. Snow-capped pine trees surround the bay, their branches heavy with frost. The landscape is bathed in soft, diffused sunlight, casting gentle shadows across the snowy terrain. In the distance, rolling hills covered in a blanket of pristine snow stretch towards the horizon. The sky is a clear, pale blue, with wisps of clouds drifting lazily. Static aerial shot from a moderate height, emphasizing the vast, tranquil beauty of the winter landscape.",
+      "index": 17,
+      "pose_str": "left-8, up-4, w-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000017_left8up4w7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000018.pt",
+      "caption": "Ahmed, a young and adventurous explorer with a passion for discovery, stands confidently in front of a vast, uncharted wilderness. He wears a durable backpack and sturdy hiking boots, his clothes slightly worn but clean. His determined gaze is fixed on the horizon as he holds a map and compass in his hands, ready for a new journey. Ahmed's facial expression conveys both excitement and bravery. The background showcases a dense forest with towering trees and a winding path leading deeper into nature. The scene is captured in stunning photorealism, with vibrant colors and crisp 4K resolution. Static medium shot.",
+      "index": 18,
+      "pose_str": "a-8, w-4, a-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000018_a8w4a7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000019.pt",
+      "caption": "\"Alice in Wonderland\" adapted in a 1930s two-strip Technicolor film style. Alice, portrayed as a young girl with curly blonde hair and a whimsical smile, wears a white frilly dress with a blue sash and pinafore apron. She stands in a fantastical garden, surrounded by oversized flowers and peculiar creatures, including a grinning Cheshire Cat and a sleepy Caterpillar smoking a hookah pipe. The background features blurred, dreamlike landscapes with soft pastel colors. Alice curiously reaches out towards the Cheshire Cat, who playfully disappears and reappears. Medium shot, capturing Alice’s enchanting interaction with the magical world around her.",
+      "index": 19,
+      "pose_str": "a-8, right-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000019_a8right11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000020.pt",
+      "caption": "\"Alice in Wonderland\" illustrated in the style of Jim Woodring. Alice, a young girl with fair skin and blonde hair tied in pigtails, stands in a whimsical, dreamlike forest. She wears a Victorian-era dress with a white blouse underneath and a blue ribbon around her neck. The forest is filled with surreal, anthropomorphic creatures and peculiar flora, such as talking flowers and rabbit-like beings. The background showcases a vibrant, otherworldly landscape with twisting trees and glowing mushrooms. The illustration captures a sense of wonder and enchantment. Close-up, medium shot.",
+      "index": 20,
+      "pose_str": "left-8, right-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000020_left8right11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000021.pt",
+      "caption": "\"Alice in Wonderland\" internet-inspired animation, featuring Alice wearing a classic blue dress with a white apron, standing in front of a glowing computer screen. She has curious, wide-eyed expression as she reaches out towards a digital rabbit hole. The rabbit hole leads to a vibrant, surreal online world filled with glitch effects, neon colors, and floating text bubbles. The background shows a mix of digital elements such as code snippets, web icons, and social media logos. Alice is depicted in a medium shot, with a slight tilt up to emphasize the magical portal opening below her hand.",
+      "index": 21,
+      "pose_str": "d-8, down-4, s-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000021_d8down4s7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000022.pt",
+      "caption": "Alistair and Isabella, two medieval-era characters, are surrounded by a variety of enchanted creatures including mystical birds, gentle unicorns, and wise-looking fauns. They are engaged in a thoughtful conversation under the shelter of a colossal ancient tree with sprawling branches. The creatures are gathered around them, listening attentively, their eyes filled with wisdom. Alistair and Isabella are dressed in elegant robes, Alistair in deep blue and Isabella in soft lavender. The scene is bathed in soft, magical light filtering through the leaves of the ancient tree. Close-up, static shot focusing on the interaction between Alistair and Isabella.",
+      "index": 22,
+      "pose_str": "down-4, d-8, w-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000022_down4d8w7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000023.pt",
+      "caption": "\"Apollo and Daphne\" in a vibrant, colorful Renaissance-inspired painting style. Apollo, the god of music and poetry, is depicted mid-chase, reaching towards Daphne with a determined yet frustrated expression. Daphne, the nymph, is transforming into a laurel tree, her fingers turning into branches and leaves. Her face shows fear and desperation. The background showcases a lush forest with sunlight filtering through the trees, creating a serene yet tense atmosphere. Horizontal composition, capturing the dramatic moment of transformation.",
+      "index": 23,
+      "pose_str": "w-4, left-8, a-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000023_w4left8a7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000024.pt",
+      "caption": "Aria, a young woman with flowing blonde hair and ethereal blue eyes, wields the power of the elements with a graceful flick of her wrist. She stands confidently in a flowing white gown adorned with intricate silver patterns, symbolizing her connection to nature. As she moves her wrist, swirling clouds gather in the sky, lightning crackles, water rises from the ground, and earth tremors beneath her feet. The background showcases a dramatic landscape with towering mountains and lush forests. The scene transitions smoothly between close-ups of Aria's focused expression and wide shots capturing the elemental reactions. High-definition, cinematic style.",
+      "index": 24,
+      "pose_str": "down-4, left-8, w-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000024_down4left8w7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000025.pt",
+      "caption": "Ash Ketchum, a young boy with messy brown hair and a determined expression, stands with Pikachu on his shoulder among his diverse team of Pokémon in a Lofi-inspired scenic hillside. The landscape features gently swaying grass and various flying Pokémon soaring through the sky. In the background, a shimmering portal opens, revealing Diagla, the Mythical Pokémon, radiating a soft glow. Ash and his Pokémon are positioned in a medium shot, with a focus on their interactions and expressions. The scene is filled with a serene atmosphere, capturing the essence of a tranquil journey in the Pokémon world.",
+      "index": 25,
+      "pose_str": "a-8, w-4, left-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000025_a8w4left7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000026.pt",
+      "caption": "Astronauts in Space - Microgravity Inertia Demonstration: Show clips of astronauts floating inside the International Space Station, highlighting their slow, graceful movements as they move through the confined space. Display close-up shots of the astronauts' faces, capturing their expressions of concentration and wonder as they experience the unique sensation of weightlessness. Illustrate how their motions continue in a straight line unless acted upon by an external force, emphasizing the principle of inertia. Use a mix of medium and close-up shots to capture the fluidity and precision of their movements. Include descriptive voiceover explaining the concept of inertia in a microgravity environment.",
+      "index": 26,
+      "pose_str": "d-8, up-4, left-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000026_d8up4left7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000027.pt",
+      "caption": "Austin Powers, the iconic British secret agent from the '90s, exudes his signature charm in a vibrant, energetic scene. Wearing his classic white tuxedo with a bow tie, Austin strikes a pose, confidently uttering his famous catchphrase, 'Aw, yeah!' His exaggerated grin and playful wink engage the viewer directly. The background showcases a bustling, neon-lit nightclub with retro decor and dancing crowds. The lighting is bright and colorful, reflecting the era's aesthetic. Medium close-up shot focusing on Austin, capturing his dynamic and humorous character.",
+      "index": 27,
+      "pose_str": "left-8, d-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000027_left8d11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000028.pt",
+      "caption": "\"AyA\" in 3D written on a dark, gothic background. A stylish woman stands confidently, showcasing three different pairs of footwear: cute sneakers, sleek goth boots, and adorable casual shoes. Each pair is displayed prominently as she changes into them, highlighting their unique designs. The background features dark, intricate patterns and textures that complement the gothic aesthetic. The woman has a fashionable outfit with dark makeup and hair styled in a way that fits the gothic theme. Close-up shots focus on each shoe type, emphasizing their details and textures.",
+      "index": 28,
+      "pose_str": "a-8, right-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000028_a8right11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000029.pt",
+      "caption": "Benny standing at the entrance of the Enchanted Forest, surrounded by towering trees with lush, vibrant foliage. The trees are adorned with various hues of green leaves and flowers, casting intricate shadows on the forest floor. Sunlight filters through the dense canopy, creating dappled rays that dance around Benny, enhancing the magical and mystical ambiance of the forest. Benny stands with his arms loosely at his sides, gazing intently into the forest with a sense of wonder and curiosity. The scene is captured in a close-up medium shot, emphasizing the enchanting details of the forest and Benny’s expression.",
+      "index": 29,
+      "pose_str": "s-4, left-8, right-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000029_s4left8right7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000030.pt",
+      "caption": "Bhuvan Bam dances energetically on a busy city street, surrounded by passersby who watch curiously. Bhuvan, dressed in vibrant traditional Indian attire, performs a lively folk dance, showcasing dynamic and expressive movements. The background includes bustling traffic, colorful street vendors, and a vibrant atmosphere typical of an Indian urban setting. Mid-shot capturing Bhuvan's joyful expressions and energetic dance moves.",
+      "index": 30,
+      "pose_str": "up-4, w-4, d-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000030_up4w4d11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000031.pt",
+      "caption": "\"Biblically accurate angels dancing\" - A serene and ethereal scene featuring two radiant angels gracefully dancing in a heavenly realm. The angels have long, flowing white robes adorned with golden embroidery, and their wings are expansive, with feathers that shimmer softly in the divine light. They move with fluid motions, their expressions filled with joy and reverence. The background showcases a celestial sky filled with stars and a soft, luminous glow. The angels' dance is gentle and harmonious, capturing the essence of divine celebration. Medium shot, static scene.",
+      "index": 31,
+      "pose_str": "d-8, s-4, d-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000031_d8s4d7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000032.pt",
+      "caption": "\"Bjork style, Nick Knight photography, Ric Owens fashion, Jodorowsky aesthetics.\" A surreal, avant-garde scene featuring Bjork in an intricate, layered outfit inspired by Ric Owens' dark and elegant designs. Her face is adorned with striking makeup and elaborate hair styling, reflecting a blend of Bjork's eccentricity and Ric Owens' minimalist edge. The background is abstract and dreamlike, evoking the otherworldly atmospheres of Alejandro Jodorowsky's films. The lighting is dramatic, with shadows casting an eerie glow, capturing the essence of Nick Knight's visionary photography. Wide shot, static scene.",
+      "index": 32,
+      "pose_str": "up-4, d-8, right-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000032_up4d8right7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000033.pt",
+      "caption": "\"Bright Future\", ultra-realistic cinematic style, a bustling cityscape at dawn from a top-down perspective. The scene includes towering skyscrapers with reflections of the rising sun, pedestrians and vehicles moving about, and vibrant neon lights still glowing against the morning sky. The atmosphere is filled with optimism and energy, showcasing the dynamic urban life in a highly detailed and lifelike manner. Wide shot, static scene.",
+      "index": 33,
+      "pose_str": "s-4, a-8, right-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000033_s4a8right7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000034.pt",
+      "caption": "Bryan Christie styled zombie action movie, directed by Michael Bay, showcasing a band of brothers during a D-Day style attack. The scene features a group of soldiers in World War II-era uniforms, armed with various weapons, advancing through a war-torn European landscape filled with zombies. The soldiers exhibit intense expressions, determined and focused. The environment is gritty and detailed, with bullet impacts, explosions, and debris scattered around. The lighting is dramatic, highlighting shadows and contrasts. The scene captures the chaos and intensity of combat in high dynamic range (HDR) quality, rendered in 8K resolution.",
+      "index": 34,
+      "pose_str": "right-8, down-4, left-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000034_right8down4left7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000035.pt",
+      "caption": "\"Bubbles In The Brain,\" a dynamic and animated cinematic scene with maximum movement and motion graphics. The scene features countless bubbles floating and swirling within a vast, abstract brain structure. The bubbles vary in size and color, creating a vibrant and fluid visual experience. The brain is depicted with intricate neural pathways and synaptic connections, giving the impression of immense complexity and scale. The lighting is dramatic, casting soft shadows that enhance the depth and dimensionality of the scene. Shot with a wide-angle lens at f/4 aperture and ISO 200, the imagery captures the expansive nature of the brain while maintaining clarity and detail. Cinematic lighting enhances the surreal and ethereal quality of the visuals. Wide shot, emphasizing the massive scale and continuous motion of the bubbles within the brain.",
+      "index": 35,
+      "pose_str": "right-8, d-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000035_right8d11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000036.pt",
+      "caption": "\"Chand Ryan 3 Moon Landing Pictures\" - A historical reenactment of the moon landing, featuring an astronaut named Chand Ryan in a spacesuit, standing on the lunar surface. Chand has a determined look on their face, with the American flag planted beside them. The lunar module is visible in the background, along with the stark, rocky terrain of the moon. The sky behind them is pitch black, dotted with stars. The scene is depicted in a documentary style, with a medium close-up focusing on Chand Ryan.",
+      "index": 36,
+      "pose_str": "a-8, down-4, d-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000036_a8down4d7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000037.pt",
+      "caption": "Cinematic 4K mediaVZL age close-up shot of The King playing with his ornate gold ring. The King, with regal attire including a crown and flowing robe, sits in a throne room adorned with luxurious tapestries and grand architecture. His fingers delicately manipulate the ring as he gazes thoughtfully into the distance, conveying a sense of power and introspection. The lighting highlights the intricate details of the ring and the King's expressive face.",
+      "index": 37,
+      "pose_str": "down-4, w-4, down-4, w-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000037_down4w4down4w7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000038.pt",
+      "caption": "\"Cinematic Light Epic Masterpiece\": In a grand, epic cinematic scene, a hero lifts a cursed artifact from a dark pedestal surrounded by flickering torches. The artifact glows ominously, casting eerie shadows on the hero's determined face. The hero stands tall, muscles flexing as they lift the heavy object. The background shows an ancient, crumbling temple with detailed carvings and towering stone pillars. The lighting is dramatic, with shafts of light piercing the darkness, creating a high contrast between light and shadow. The scene is captured in a wide shot, emphasizing the scale and drama of the moment.",
+      "index": 38,
+      "pose_str": "right-8, w-4, a-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000038_right8w4a7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000039.pt",
+      "caption": "\"Cinematic Realistic Wave, High Detail\" - A powerful ocean wave crashes down in slow motion, revealing intricate details of frothy white foam and deep blue water. The wave's crest forms a dramatic arch, with sunlight glinting off droplets, casting a shimmering glow. The water's surface shows ripples and turbulence, adding depth and realism. The background showcases a vast, open sea with distant waves rolling in. The scene captures the raw power and beauty of nature, filmed from a mid-shot angle to emphasize the wave's scale and majesty.",
+      "index": 39,
+      "pose_str": "d-8, s-4, down-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000039_d8s4down7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000040.pt",
+      "caption": "\"Cinematic Ultra-Realistic Futuristic Scene: Andre 3000 as a Robot.\" In this scene, Andre 3000 is depicted as a highly advanced robot with sleek metallic skin and glowing LED lights. He stands confidently in a vibrant, technicolor environment filled with neon lights and holographic projections. His expression is serene yet intense, capturing the essence of his charisma. The background showcases a futuristic cityscape with towering skyscrapers and flying vehicles. The scene is captured in an ultra-realistic style with detailed textures and vivid colors, emphasizing a medium close-up shot to highlight his robotic features and emotional depth.",
+      "index": 40,
+      "pose_str": "down-4, right-8, s-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000040_down4right8s7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000041.pt",
+      "caption": "Cinematic Ultra HD 8K Visuals: A Gray Blue Cat with Iridescent and Luminescent Scales, Dazzling Textures, and Breathtaking Beauty, Chomping Gracefully. The cat has sleek, shimmering gray-blue fur with scales that reflect light in mesmerizing hues. Its eyes are intensely focused as it chomps on its prey. The scene captures the cat's pure perfection in stunning detail, emphasizing the iridescence and luminescence of its coat. Wide shot showcasing the cat’s majestic form.",
+      "index": 41,
+      "pose_str": "a-8, w-4, right-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000041_a8w4right7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000042.pt",
+      "caption": "Cinematic Unreal Engine 5 and V-Ray rendered scene featuring an upscale construction site with wood, concrete, and steel elements. The environment showcases luxurious materials and intricate detailing, emphasizing the high cost and quality. Dramatic lighting highlights the textures and contrasts, casting deep shadows and intense highlights. The scene includes various architectural components such as beams, columns, and panels, all meticulously arranged to convey a sense of grandeur and modernity. The composition is set in an 8K resolution, capturing every detail in stunning clarity. Wide shot, static view.",
+      "index": 42,
+      "pose_str": "right-8, down-4, left-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000042_right8down4left7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000043.pt",
+      "caption": "Cinematic city in the sky during rush hour traffic, set in a cyberpunk universe. The neon-lit cityscape is ultra HD with extreme detail, featuring towering skyscrapers, flying cars, and holographic advertisements. The streets are bustling with vehicles zipping between buildings and pedestrians navigating floating walkways. The environment is highly detailed, with intricate textures on every surface, from reflective glass to glowing neon signs. The lighting is smooth and vibrant, capturing the essence of a futuristic, neon-drenched metropolis. Ultra-realistic and cinematic in style, with a focus on 64K resolution.",
+      "index": 43,
+      "pose_str": "w-4, left-8, a-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000043_w4left8a7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000044.pt",
+      "caption": "Cinematic cyberpunk courthouse interior, highly detailed and set in a futuristic cityscape. The scene is bathed in neon lights, with sleek metallic surfaces and holographic displays casting dynamic shadows. Characters move with purpose, their clothing reflecting the high-tech aesthetic of the era. The environment is richly textured, with intricate architectural elements and advanced technology seamlessly integrated into the space. Crisp visuals capture every detail, from the reflective surfaces to the fine lines on the characters' faces. Wide shot showcasing the grandeur and complexity of the setting.",
+      "index": 44,
+      "pose_str": "left-8, s-4, right-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000044_left8s4right7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000045.pt",
+      "caption": "Cinematic photorealistic scene of God’s Kingdom in the sky. The sky is filled with vast, majestic clouds forming intricate, castle-like structures adorned with golden gates and archways. Angels with flowing white robes and radiant halos are flying gracefully, playing harps and singing hymns. In the background, a sunburst illuminates the clouds, casting a warm, divine glow. The scene is serene and awe-inspiring, capturing the ethereal beauty of heaven. Wide shot, static view.",
+      "index": 45,
+      "pose_str": "d-8, up-4, s-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000045_d8up4s7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000046.pt",
+      "caption": "Cinematic view of The Flash running at lightning-fast speed across a concrete bridge, creating a powerful sonic boom that ripples through the air. The Flash, depicted in his iconic red suit with lightning bolt insignia, has a determined expression as he moves. His blurred form and the distortion of the surrounding environment due to his extreme velocity are emphasized. The background shows the city skyline with tall buildings and a distant horizon. The scene is captured in ultra-realistic, high-definition CGI with detailed textures and effects, highlighting the intense speed and power of The Flash. Wide shot, focusing on the dynamic motion and visual effects.",
+      "index": 46,
+      "pose_str": "s-4, right-8, left-7",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000046_s4right8left7/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000047.pt",
+      "caption": "\"Copperpot - Water the Manatee\" in a whimsical cartoon style. Copperpot, a cheerful and energetic anthropomorphic copper pot with a large lid for a hat, is seen bending down to water a friendly manatee with a watering can. The manatee, with large eyes and a gentle demeanor, floats happily in a small pond surrounded by lush greenery. Copperpot is wearing a colorful apron and has a joyful smile as he waters the manatee. The background showcases a vibrant garden with various flowers and plants. The scene is a close-up, capturing the interaction between Copperpot and the manatee, emphasizing their playful bond.",
+      "index": 47,
+      "pose_str": "left-8, right-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000047_left8right11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000048.pt",
+      "caption": "\"Cosmic Energy Collectors: Advanced structures designed to capture cosmic radiation and energy permeating space.\" Visualize these advanced structures as sleek, metallic towers with intricate patterns that shimmer under starlight. Each tower is equipped with large, reflective panels that open and close rhythmically, capturing and channeling cosmic energy. The towers are set against a backdrop of the vast cosmos, filled with twinkling stars and distant galaxies. The scene is dynamic, showcasing the towers' panels opening and closing in sync, with occasional bursts of radiant energy illuminating the structures. Medium shot, emphasizing the interaction between the structures and the surrounding celestial environment.",
+      "index": 48,
+      "pose_str": "a-8, right-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000048_a8right11/gen.mp4"
+    },
+    {
+      "cache_file": "samples/000049.pt",
+      "caption": "\"Creekside Play and Puppy Pals\": In a serene, sunlit clearing beside a tranquil creek, a joyful woman in casual attire joins a group of five playful puppies. The puppies, with their fluffy coats and wagging tails, splash and frolic in the clear water, creating ripples. The woman laughs heartily as she dips her hands into the cool water, playfully splashing the puppies. The scene captures the carefree joy and natural beauty of the environment, with lush greenery and gentle sunlight filtering through the trees. Medium close-up, static shot focusing on the interaction between the woman and the puppies.",
+      "index": 49,
+      "pose_str": "s-4, down-4, right-11",
+      "video_path": "/workspace/yuhang/minwm/dataset/Data_50/000049_s4down4right11/gen.mp4"
+    }
+  ]
+}

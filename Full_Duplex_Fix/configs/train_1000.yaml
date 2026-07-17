@@ -1,5 +1,5 @@
 project_root: /workspace/yuhang/minwm
-training_mode: single_sample
+training_mode: multi_sample
 
 generator_checkpoint_stage: ar_diffusion_tf
 base_checkpoint: ckpts/Wan21/Action2V/ar_diffusion_tf/model.pt
@@ -10,12 +10,16 @@ vae_checkpoint: ckpts/Wan2.1-T2V-1.3B/Wan2.1_VAE.pth
 t5_checkpoint: ckpts/Wan2.1-T2V-1.3B/models_t5_umt5-xxl-enc-bf16.pth
 t5_tokenizer: ckpts/Wan2.1-T2V-1.3B/google/umt5-xxl
 
-video_path: dataset/SmallestData/000000_right8a11/gen.mp4
-metadata_path: dataset/SmallestData/smllest_input.json
-action_manifest: dataset/SmallestData/split_4f_actions/manifest.json
-cache_path: Full_Duplex_Fix/cache/smallest_000000
-output_dir: /root/minwm_checkpoints/40span_overfit_2000_gpu0_v2
-cache_version: full_duplex_fix_v2
+input_manifest: dataset/video_minwm_1000/preencode_input.json
+dataset_cache_path: dataset/video_minwm_1000/full_duplex_cache_v1
+expected_dataset_size: 1000
+validation_size: 50
+eval_num_samples: 8
+train_all_samples: true
+dataset_split_seed: 20260716
+dataloader_num_workers: 2
+output_dir: /root/minwm_checkpoints/40span_video_minwm_1000_ddp2_10000
+cache_version: full_duplex_dataset_cache_v1
 layout_version: interleaved_40_span_v1
 mask_version: role_time_single_state_v1
 camera_protocol: prope_repository_geometry_v1
@@ -50,33 +54,34 @@ text_dim: 4096
 
 num_train_timesteps: 1000
 timestep_shift: 5.0
-learning_rate: 1.0e-5
-weight_decay: 0.0
+learning_rate: 2.0e-6
+weight_decay: 0.01
 beta1: 0.0
 beta2: 0.999
 batch_size: 1
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 4
+total_batch_size: 8
 max_grad_norm: 10.0
-max_steps: 2000
+max_steps: 10000
 mixed_precision: bf16
 gradient_checkpointing: true
-distributed_backend: single_gpu
+distributed_backend: ddp
 fsdp_enabled: false
 sequence_parallel_size: 1
-world_size: 1
+world_size: 2
 lr_scheduler: constant
-seed: 20260715
+seed: 20260716
 
 sampling_steps: 50
 guidance_scale: 3.0
-fixed_evaluation_seed: 20260715
+fixed_evaluation_seed: 20260716
 negative_prompt: "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
 
 local_attention_states: 20
-save_every: 500
+save_every: 2500
 eval_every: 500
 log_every: 1
-hash_large_preprocessing_files: true
+hash_large_preprocessing_files: false
 checkpoint_include_optimizer: false
 save_initial_checkpoint: false
 retain_step_checkpoints: true
@@ -85,12 +90,11 @@ wandb_enabled: true
 wandb_mode: online
 wandb_project: minwm-full-duplex-fix
 wandb_entity: null
-wandb_run_name: interleaved-40span-overfit-2000-gpu0-v2
+wandb_run_name: interleaved-40span-video-minwm-1000-ddp2-10000
 wandb_run_id: null
-wandb_group: single-sample-overfit
-wandb_job_type: single_sample_overfit
-wandb_tags: [minwm, full-duplex, single-sample-overfit, wan2.1]
-wandb_notes: "Single-video 20-state interleaved teacher-forcing experiment."
+wandb_group: multi-sample-training
+wandb_job_type: multi_sample_training
+wandb_tags: [minwm, full-duplex, 40-span, video-minwm-1000, ddp2, wan2.1]
+wandb_notes: "Two-H200 DDP deliberate overfit on all 1000 videos; effective batch size 8, 10000 optimizer steps."
 wandb_dir: /root/minwm_wandb
-# Large optimizer checkpoints remain local unless this is explicitly enabled.
 wandb_log_checkpoints: false

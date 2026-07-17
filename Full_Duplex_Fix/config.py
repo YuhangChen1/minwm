@@ -46,7 +46,9 @@ def load_config(path: str | Path) -> dict[str, Any]:
         "video_path",
         "metadata_path",
         "action_manifest",
+        "input_manifest",
         "cache_path",
+        "dataset_cache_path",
         "output_dir",
         "wandb_dir",
     )
@@ -59,6 +61,10 @@ def load_config(path: str | Path) -> dict[str, Any]:
 
 
 def validate_config(config: dict[str, Any]) -> None:
+    training_mode = str(config.get("training_mode", "single_sample"))
+    if training_mode not in {"single_sample", "multi_sample"}:
+        raise ValueError("training_mode must be single_sample or multi_sample")
+
     exact = {
         "num_states": 20,
         "num_noisy_spans": 20,
@@ -85,7 +91,6 @@ def validate_config(config: dict[str, Any]) -> None:
         "text_length": 512,
         "text_dim": 4096,
         "batch_size": 1,
-        "gradient_accumulation_steps": 1,
         "local_attention_states": 20,
         "num_train_timesteps": 1000,
     }
@@ -104,14 +109,23 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("sampling_steps must be positive")
     if config.get("mixed_precision") not in {"bf16", "fp32"}:
         raise ValueError("mixed_precision must be bf16 or fp32")
-    if config.get("distributed_backend") != "single_gpu":
-        raise ValueError("This implementation currently supports distributed_backend=single_gpu")
     if config.get("fsdp_enabled") is not False:
-        raise ValueError("fsdp_enabled must be false for the verified single-H200 path")
-    if config.get("sequence_parallel_size") != 1 or config.get("world_size") != 1:
-        raise ValueError("sequence_parallel_size and world_size must both be 1")
+        raise ValueError("fsdp_enabled must be false for the verified H200 paths")
+    if config.get("sequence_parallel_size") != 1:
+        raise ValueError("sequence_parallel_size must be 1")
+    if training_mode == "single_sample":
+        if config.get("distributed_backend") != "single_gpu" or config.get("world_size") != 1:
+            raise ValueError("single_sample requires single_gpu and world_size=1")
+    elif config.get("distributed_backend") != "ddp":
+        raise ValueError("multi_sample requires distributed_backend=ddp")
+    elif not isinstance(config.get("world_size"), int) or config["world_size"] <= 0:
+        raise ValueError("multi_sample world_size must be a positive integer")
     if config.get("lr_scheduler") != "constant":
         raise ValueError("lr_scheduler must be constant")
+
+    accumulation = config.get("gradient_accumulation_steps")
+    if not isinstance(accumulation, int) or accumulation <= 0:
+        raise ValueError("gradient_accumulation_steps must be a positive integer")
 
     for key in ("max_steps", "save_every", "eval_every", "log_every"):
         if not isinstance(config.get(key), int) or config[key] <= 0:
@@ -140,6 +154,13 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("wandb_tags must be a list of non-empty strings")
     if not isinstance(config.get("wandb_log_checkpoints"), bool):
         raise ValueError("wandb_log_checkpoints must be true or false")
+    for key in (
+        "checkpoint_include_optimizer",
+        "save_initial_checkpoint",
+        "retain_step_checkpoints",
+    ):
+        if not isinstance(config.get(key, False), bool):
+            raise ValueError(f"{key} must be true or false")
     secret_keys = {
         "api_key",
         "password",
@@ -159,15 +180,37 @@ def validate_config(config: dict[str, Any]) -> None:
             f"`wandb login` instead (found: {configured_secrets})"
         )
 
-    required_files = (
+    required_files = [
         "base_checkpoint",
         "vae_checkpoint",
         "t5_checkpoint",
         "t5_tokenizer",
-        "video_path",
-        "metadata_path",
-        "action_manifest",
-    )
+    ]
+    if training_mode == "single_sample":
+        required_files.extend(("video_path", "metadata_path", "action_manifest"))
+    else:
+        required_files.append("input_manifest")
+        if not str(config.get("dataset_cache_path") or "").strip():
+            raise ValueError("multi_sample requires dataset_cache_path")
+        expected_size = config.get("expected_dataset_size")
+        if not isinstance(expected_size, int) or expected_size <= 0:
+            raise ValueError("expected_dataset_size must be a positive integer")
+        validation_size = config.get("validation_size")
+        if not isinstance(validation_size, int) or not 0 < validation_size < expected_size:
+            raise ValueError("validation_size must be between 1 and expected_dataset_size - 1")
+        if not isinstance(config.get("train_all_samples"), bool):
+            raise ValueError("train_all_samples must be true or false")
+        eval_samples = config.get("eval_num_samples")
+        if not isinstance(eval_samples, int) or not 0 < eval_samples <= validation_size:
+            raise ValueError("eval_num_samples must be between 1 and validation_size")
+        workers = config.get("dataloader_num_workers")
+        if not isinstance(workers, int) or workers < 0:
+            raise ValueError("dataloader_num_workers must be a non-negative integer")
+        effective_batch = config["batch_size"] * config["world_size"] * accumulation
+        if config.get("total_batch_size") != effective_batch:
+            raise ValueError(
+                f"total_batch_size must equal batch_size*world_size*accumulation={effective_batch}"
+            )
     missing = [key for key in required_files if not Path(config[key]).exists()]
     if missing:
         details = ", ".join(f"{key}={config[key]}" for key in missing)

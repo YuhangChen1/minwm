@@ -116,8 +116,12 @@ def _decode_video(config: dict[str, Any]) -> tuple[torch.Tensor, dict[str, Any]]
         raise ValueError(f"Expected 77 frames, decoded {frame_count}")
     if abs(fps - float(config["source_fps"])) > 1e-3:
         raise ValueError(f"Expected {config['source_fps']} FPS, decoded {fps}")
-    frames = reader.get_batch(list(range(frame_count))).asnumpy()
-    pixels = torch.from_numpy(frames).permute(3, 0, 1, 2).contiguous().float()
+    decoded = reader.get_batch(list(range(frame_count)))
+    if isinstance(decoded, torch.Tensor):
+        frames = decoded.detach().cpu().contiguous()
+    else:
+        frames = torch.from_numpy(decoded.asnumpy())
+    pixels = frames.permute(3, 0, 1, 2).contiguous().float()
     pixels = pixels.div_(127.5).sub_(1.0)
     return pixels, {
         "frame_count": frame_count,
